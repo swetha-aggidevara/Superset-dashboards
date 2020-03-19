@@ -117,7 +117,8 @@ function getStateFromCommonTimeFrame(value) {
     type: TYPES.DEFAULTS,
     common: value,
     since: moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT),
-    until: moment().startOf('day').format(MOMENT_FORMAT),
+    //until: moment().startOf('day').format(MOMENT_FORMAT), for changing date to current date with time
+    until: moment().format(MOMENT_FORMAT)
   };
 }
 

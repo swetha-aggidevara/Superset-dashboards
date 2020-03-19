@@ -648,7 +648,7 @@ DOCUMENTATION_URL = None
 # start time will be set to midnight, while end will be relative to
 # the query issue time.
 DEFAULT_RELATIVE_START_TIME = "today"
-DEFAULT_RELATIVE_END_TIME = "today"
+DEFAULT_RELATIVE_END_TIME = "now"
 
 # Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {"presto": "PrestoDBSQLValidator"}
