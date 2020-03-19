@@ -2064,6 +2064,9 @@ class MapboxViz(BaseViz):
         x_series, y_series = df[fd.get("all_columns_x")], df[fd.get("all_columns_y")]
         south_west = [x_series.min(), y_series.min()]
         north_east = [x_series.max(), y_series.max()]
+        lat = fd.get("viewport_latitude")
+        lon = fd.get("viewport_longitude")
+        zoom = fd.get("viewport_zoom")
 
         return {
             "geoJSON": geo_json,
@@ -2074,7 +2077,7 @@ class MapboxViz(BaseViz):
             "clusteringRadius": fd.get("clustering_radius"),
             "pointRadiusUnit": fd.get("point_radius_unit"),
             "globalOpacity": fd.get("global_opacity"),
-            "bounds": [south_west, north_east],
+            "bounds": [south_west, north_east,[lat,lon,zoom]],
             "renderWhileDragging": fd.get("render_while_dragging"),
             "tooltip": fd.get("rich_tooltip"),
             "color": fd.get("mapbox_color"),

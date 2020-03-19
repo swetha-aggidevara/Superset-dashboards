@@ -373,7 +373,7 @@ BACKUP_COUNT = 30
 #     pass
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
+MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "pk.eyJ1IjoicGF2YW50aGVqIiwiYSI6ImNrMHFna3FibTA3bnQzZXBnN3pqd3VtcTMifQ.xX2BQNLshtzncvDMcG4aNA")
 
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored
