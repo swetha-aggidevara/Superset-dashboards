@@ -55,7 +55,7 @@ const defaultProps = {
   onFilterMenuOpen: () => BLANK,
   onFilterMenuClose: () => BLANK,
   initialValues: BLANK,
-  setControlValue() {},
+  setControlValue() { },
   triggerRender: false,
 };
 
@@ -206,6 +206,29 @@ class ChartRenderer extends React.Component {
       formData,
       queryResponse,
     } = this.props;
+
+    if (formData.viz_type === 'bar') {
+      if ( formData.extra_filters != undefined && formData.extra_filters.length > 0) {
+        let extra_filters = formData.extra_filters;
+
+        let extra_filter_granualarity = extra_filters.find((element) => {
+          return element.col === '__granularity' || element.col === '__time_grain'; //"__time_grain"
+        })
+
+        if (extra_filter_granualarity && extra_filter_granualarity.val === 'P1M') {
+          formData.x_axis_format = '%b %Y';
+        }
+        else if(extra_filter_granualarity && extra_filter_granualarity.val === 'P1W') {
+          formData.x_axis_format = '%d/%m/%Y';
+        }
+        else if( extra_filter_granualarity && (extra_filter_granualarity.val === 'P3M' || extra_filter_granualarity.val === "P0.25Y")) {
+          formData.x_axis_format = '%Q';
+        }
+        else if(extra_filter_granualarity && extra_filter_granualarity.val === 'P1Y') {
+          formData.x_axis_format = '%Y';
+        }
+      }
+    }
 
     return (
       <React.Fragment>
