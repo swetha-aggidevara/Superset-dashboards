@@ -67,7 +67,7 @@ superset/client_secret2.json
 
 # IntelliJ
 *.iml
-venv
+venv/
 @eaDir/
 
 # Docker
