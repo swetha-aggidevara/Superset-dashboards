@@ -38,6 +38,19 @@ export default function FilterIndicatorTooltip({
   values,
   clickIconHandler,
 }) {
+  let time_values = {'PT1S': 'second',
+        'PT1M': 'minute',
+        'PT1H': 'hour',
+        'P1D': 'day',
+        'P1W': 'week',
+        'P1M': 'month',
+        'P0.25Y':'quarter',
+        'P1Y':'year'}
+
+if(label === '__time_grain') {
+  label = 'Time Grain';
+  values = time_values[values[0]] == undefined ?values:[time_values[values[0]]];
+}
   const displayValue = isEmpty(values) ? t('Not filtered') : values.join(', ');
 
   return (
