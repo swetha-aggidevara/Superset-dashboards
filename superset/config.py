@@ -114,7 +114,7 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "supersetVerTest
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = True
+WTF_CSRF_ENABLED = False
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log"]
@@ -267,7 +267,7 @@ CACHE_CONFIG: Dict[str, Any] = {"CACHE_TYPE": "null"}
 TABLE_NAMES_CACHE_CONFIG = {"CACHE_TYPE": "null"}
 
 # CORS Options
-ENABLE_CORS = False
+ENABLE_CORS = True
 CORS_OPTIONS: Dict[Any, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
@@ -556,7 +556,7 @@ HIVE_POLL_INTERVAL = 5
 # this enables programmers to customize certain charts (like the
 # geospatial ones) by inputing javascript in controls. This exposes
 # an XSS security vulnerability
-ENABLE_JAVASCRIPT_CONTROLS = False
+ENABLE_JAVASCRIPT_CONTROLS = True
 
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None

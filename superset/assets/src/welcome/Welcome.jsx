@@ -23,6 +23,8 @@ import { t } from '@superset-ui/translation';
 import RecentActivity from '../profile/components/RecentActivity';
 import Favorites from '../profile/components/Favorites';
 import DashboardTable from './DashboardTable';
+import moment from 'moment'
+import { APIURLS } from 'src/explore/constants';
 
 const propTypes = {
   user: PropTypes.object.isRequired,
@@ -40,7 +42,27 @@ export default class Welcome extends React.PureComponent {
     this.setState({ search: event.target.value });
   }
   render() {
-    return (
+    let tz = moment().format('Z');
+    let url = APIURLS.url;
+    let url2 = APIURLS.url2;
+    fetch(url, { method: 'POST', body: JSON.stringify({ tz }) })
+      .then((response) => response.json())
+      .then((data) => {
+        fetch(url2, { method: 'GET' })
+          .then((response) => response.json())
+          .then((data) => {})
+      }); 
+/* 
+      let xhttp =  new XMLHttpRequest();
+      xhttp.open('POST',url,false);
+      xhttp.send(JSON.stringify({ tz }));
+      console.log("xhttpResponse",xhttp.responseText);
+
+      let xhttp2 =  new XMLHttpRequest();
+      xhttp2.open('GET',url2,false);
+      xhttp2.send();
+      console.log("xhttpResponse2",xhttp2.responseText); */
+      return (
       <div className="container welcome">
         <Tabs defaultActiveKey={1} id="uncontrolled-tab-example">
           <Tab eventKey={1} title={t('Dashboards')}>

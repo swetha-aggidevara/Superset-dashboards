@@ -37,6 +37,7 @@ from flask import (
     request,
     Response,
     url_for,
+    session
 )
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
@@ -108,7 +109,8 @@ from .utils import (
     get_form_data,
     get_viz,
 )
-
+from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from .customdata import country_offset
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config.get(
@@ -632,6 +634,15 @@ class DashboardAddView(DashboardModelView):
 appbuilder.add_view_no_menu(DashboardAddView)
 
 
+def getUtcZoneName(offsetArray,offset):
+    zoneName = None
+
+    for x in offsetArray:
+        if x["offset"] == offset:
+            zoneName = x['name']
+            break
+    return zoneName
+
 @talisman(force_https=False)
 @app.route("/health")
 def health():
@@ -649,6 +660,50 @@ def healthcheck():
 def ping():
     return "OK"
 
+@app.route("/setUtcOffset",methods=['POST'])
+def setUtcOffset():
+    try:
+        offset = json.loads(request.data)['tz'] # get offset value from request body ,gmt tz like +5:30,00:00
+        session['tz'] = getUtcZoneName(country_offset,offset) #returns offset country/region name acc to offset
+        offsetFromSession = session.get('tz','None') #store offsetname in session
+
+    except:
+        pass #if none leave as it is or UTC
+    return {'res':'Offset Set Ok'}
+
+@app.route("/getUtcOffset",methods=['GET','POST'])
+def getUtcOffset():
+
+    time_grain_functions = {
+        None: "{col}",
+        "PT1S": "DATE_TRUNC('second', {col})",
+        "PT1M": "DATE_TRUNC('minute', {col})",
+        "PT1H": "DATE_TRUNC('hour', {col})",
+        "P1D": "DATE_TRUNC('day', {col})",
+        "P1W": "DATE_TRUNC('week', {col})",
+        "P1M": "DATE_TRUNC('month', {col})",
+        "P0.25Y": "DATE_TRUNC('quarter', {col})",
+        "P1Y": "DATE_TRUNC('year', {col})",
+    }
+    try:
+        offsetFromSession = session.get('tz','None')
+
+        if offsetFromSession is not 'None':
+            time_grain_functions = {
+            None: "{col}",
+            "PT1S": "DATE_TRUNC('second', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "PT1M": "DATE_TRUNC('minute', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "PT1H": "DATE_TRUNC('hour', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P1D": "DATE_TRUNC('day', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P1W": "DATE_TRUNC('week', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P1M": "DATE_TRUNC('month', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P0.25Y": "DATE_TRUNC('quarter', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P1Y": "DATE_TRUNC('year', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            }
+    except:
+        pass
+    PostgresBaseEngineSpec._time_grain_functions = time_grain_functions
+    return {'res':offsetFromSession}
 
 class KV(BaseSupersetView):
 
