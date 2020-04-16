@@ -177,6 +177,10 @@ class ChartHolder extends React.Component {
       isComponentVisible,
     } = this.props;
 
+    if(component.meta.chartId === 108){
+    console.log("component",component);
+        }
+
     // inherit the size of parent columns
     const widthMultiple =
       parentComponent.type === COLUMN_TYPE

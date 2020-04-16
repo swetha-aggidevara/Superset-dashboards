@@ -23,7 +23,7 @@ import {
 } from '../../visualizations/FilterBox/FilterBox';
 
 export default function getFilterConfigsFromFormdata(form_data = {}) {
-  const { date_filter, filter_configs = [] } = form_data;
+  const { date_filter,show_sqla_time_granularity,filter_configs = [] } = form_data;
   let configs = filter_configs.reduce(
     ({ columns, labels }, config) => {
       const updatedColumns = {
@@ -58,6 +58,10 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
       columns: updatedColumns,
       labels: updatedLabels,
     };
+  }
+  if(show_sqla_time_granularity){
+    configs.columns.__time_grain=undefined;
+    configs.labels.__time_grain="__time_grain";  
   }
   return configs;
 }

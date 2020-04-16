@@ -2062,8 +2062,8 @@ class MapboxViz(BaseViz):
         }
 
         x_series, y_series = df[fd.get("all_columns_x")], df[fd.get("all_columns_y")]
-        south_west = [x_series.min(), y_series.min()]
-        north_east = [x_series.max(), y_series.max()]
+        south_west = [x_series.min()-1, y_series.min()-1]
+        north_east = [x_series.max()+1, y_series.max()+1]
         lat = fd.get("viewport_latitude")
         lon = fd.get("viewport_longitude")
         zoom = fd.get("viewport_zoom")
