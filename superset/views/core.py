@@ -111,6 +111,16 @@ from .utils import (
 )
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from .customdata import country_offset
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, Integer, String,Float
+from sqlalchemy.ext.declarative import declarative_base
+from flask import current_app
+from flask_appbuilder.security.sqla.models import User
+from superset.models.core import Database
+from sqlalchemy.engine.url import make_url
+Base = declarative_base()
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config.get(
@@ -704,6 +714,142 @@ def getUtcOffset():
         pass
     PostgresBaseEngineSpec._time_grain_functions = time_grain_functions
     return {'res':offsetFromSession}
+
+class UserProgram(Base):
+    __tablename__='userprogram'
+    __table_args__ = {'extend_existing': True} 
+    program_id=Column(Integer)
+    dashboard=Column(Integer)
+    chartid=Column(Integer)
+    sequence=Column(Integer,primary_key=True)
+    username=Column(String)
+    program_name=Column(String)
+
+class Programlocation(Base):
+    __tablename__='program_metadata'
+    __table_args__ = {'extend_existing': True} 
+    program_id=Column(Integer,primary_key=True)
+    latitude=Column(Float)
+    longitude=Column(Float)
+    zoom=Column(Integer)
+    program_name=Column(String)
+
+
+def getDataForProgram(program_name):
+    program_name=program_name
+
+    postgre_engine = None
+
+    resData = []
+
+    #for getting dbURL for SQLITE
+    sqlite_engine=create_engine(current_app.config.get("SQLALCHEMY_DATABASE_URI"))
+
+#create session for querying sqlite db
+    SessionForSqlite = sessionmaker(bind=sqlite_engine)
+    s1= SessionForSqlite()
+
+#for getting dbURL for postgres
+    dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
+    for r in dbURL:
+        dburl = r.sqlalchemy_uri_decrypted
+        postgre_engine=create_engine(dburl)
+
+#create session for querying postgre db
+    SessionForPostgre = sessionmaker(bind=postgre_engine)
+    s2 = SessionForPostgre()
+
+    result=s2.query(Programlocation).filter(Programlocation.program_name==program_name).all()
+
+    for r in result:
+        resData.append({'latitude':r.latitude,'longitude':r.longitude,'zoom':r.zoom,'program_name':program_name})
+
+#commit and close all sessions
+    s1.commit()
+    s1.close()
+    s2.commit()
+    s2.close()
+
+    return {'data':resData}
+
+def getData():
+    try:
+
+        username=None
+        user_id=session.get('user_id',None)
+        userRole=None
+        dburl=None
+        dashData = []
+
+        if user_id is not None:
+            user_id=int(user_id)
+
+        postgre_engine = None
+
+        #for getting dbURL for SQLITE
+        sqlite_engine=create_engine(current_app.config.get("SQLALCHEMY_DATABASE_URI"))
+
+    #create session for querying sqlite db
+        SessionForSqlite = sessionmaker(bind=sqlite_engine)
+        s1= SessionForSqlite()
+
+    #for getting dbURL for postgres
+        dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
+        for r in dbURL:
+            dburl = r.sqlalchemy_uri_decrypted
+            postgre_engine=create_engine(dburl)
+
+    #create session for querying postgre db
+        SessionForPostgre = sessionmaker(bind=postgre_engine)
+        s2 = SessionForPostgre()
+
+        #get details of dashboard and corresponding chart filter
+        for value in s2.query(UserProgram.dashboard).distinct():
+            dashData.append({'dashId':value.dashboard})
+
+        for value in dashData:
+            result = s2.query(UserProgram.chartid).filter(UserProgram.dashboard==value['dashId']).first()
+            value['chartId']=result.chartid
+
+    #get userinfo
+        userInfo=s1.query(User).filter(User.id==user_id).all()
+        for r in userInfo:
+            username=r.username
+
+    #get additional data on basis of userinfo
+        result = s2.query(UserProgram).filter(UserProgram.username==username).all()
+        
+        resData = []
+
+        for r in result:
+            resData.append({"userId":user_id,"dashId":r.dashboard,"chartId":r.chartid,"programName":r.program_name})
+
+        if len(resData)> 0:
+            for data in resData:
+                resultForLocation = s2.query(Programlocation).filter(Programlocation.program_name==data['programName']).all()
+                for r in resultForLocation:
+                    obj = {'latitude':r.latitude,'longitude':r.longitude,'zoom':r.zoom}
+                    data['extra'] = obj
+
+    #commit and close all sessions
+        s1.commit()
+        s1.close()
+        s2.commit()
+        s2.close()
+    
+        return {"data":resData,"extra":dashData}
+
+    except:
+        return{"data":[],"extra":[],"error":"True"}
+
+
+@app.route("/getDataForDashboard",methods=["GET","POST"])
+def getDataForDashboard():
+    return getData()
+
+@app.route("/getDataForProram",methods=["GET","POST"])
+def getDataForProram():
+    return getDataForProgram(request.args.get('program_name',None))
 
 class KV(BaseSupersetView):
 
@@ -2215,6 +2361,35 @@ class Superset(BaseSupersetView):
 
         if request.args.get("json") == "true":
             return json_success(json.dumps(bootstrap_data))
+#modify dashboard data acc to user program
+        try:
+            resData = getData()['data']
+            extraData = getData()['extra']
+            status = False
+
+            for data in resData:
+                if bootstrap_data['dashboard_data']['id']==data['dashId']:
+                    status=True
+                    dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
+                    x=json.loads(dfilters)
+                    x[data['chartId']]={'program_name':[data['programName']]}
+                    bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
+                
+                else:
+                    pass
+
+            for data in extraData:
+                if bootstrap_data['dashboard_data']['id']==data['dashId'] and len(resData) > 0 and status is False:
+                    dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
+                    x=json.loads(dfilters)
+                    x[data['chartId']]={'program_name':'zxsajkjbvdjfnnjd'}
+                    bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
+                
+                else:
+                    pass
+
+        except:
+            pass
 
         return self.render_template(
             "superset/dashboard.html",

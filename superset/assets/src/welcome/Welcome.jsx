@@ -38,13 +38,12 @@ export default class Welcome extends React.PureComponent {
     };
     this.onSearchChange = this.onSearchChange.bind(this);
   }
-  onSearchChange(event) {
-    this.setState({ search: event.target.value });
-  }
-  render() {
+
+  componentDidMount() {
     let tz = moment().format('Z');
     let url = APIURLS.url;
     let url2 = APIURLS.url2;
+    let url3 = APIURLS.url3;
     fetch(url, { method: 'POST', body: JSON.stringify({ tz }) })
       .then((response) => response.json())
       .then((data) => {
@@ -52,16 +51,22 @@ export default class Welcome extends React.PureComponent {
           .then((response) => response.json())
           .then((data) => {})
       }); 
-/* 
-      let xhttp =  new XMLHttpRequest();
-      xhttp.open('POST',url,false);
-      xhttp.send(JSON.stringify({ tz }));
-      console.log("xhttpResponse",xhttp.responseText);
 
-      let xhttp2 =  new XMLHttpRequest();
-      xhttp2.open('GET',url2,false);
-      xhttp2.send();
-      console.log("xhttpResponse2",xhttp2.responseText); */
+      localStorage.removeItem('dashData')
+      fetch(url3, { method: "GET" })
+      .then((res) => res.json())
+      .then((data) => {
+        localStorage.setItem('dashData',JSON.stringify(data));
+      }).catch((err) => {
+      })
+
+  }
+
+  onSearchChange(event) {
+    this.setState({ search: event.target.value });
+  }
+  render() {
+    
       return (
       <div className="container welcome">
         <Tabs defaultActiveKey={1} id="uncontrolled-tab-example">

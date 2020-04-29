@@ -71,6 +71,8 @@ VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
     PACKAGE_JSON_FILE
 )
 
+POSTGRE_DB_NAME=os.environ.get('posgredbname')
+
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
 # max rows retrieved by filter select auto complete
@@ -194,7 +196,7 @@ AUTH_TYPE = AUTH_DB
 # Grant public role the same set of permissions as for the GAMMA role.
 # This is useful if one wants to enable anonymous users to view
 # dashboards. Explicit grant on specific datasets is still required.
-PUBLIC_ROLE_LIKE_GAMMA = False
+PUBLIC_ROLE_LIKE_GAMMA = True
 
 # ---------------------------------------------------
 # Babel config for translations

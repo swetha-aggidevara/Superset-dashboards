@@ -36,6 +36,7 @@ import {
   GRID_BASE_UNIT,
   GRID_GUTTER_SIZE,
 } from '../../util/constants';
+import { APIURLS, CHARTID } from 'src/explore/constants';
 
 const CHART_MARGIN = 32;
 
@@ -107,6 +108,9 @@ class ChartHolder extends React.Component {
       outlinedComponentId: null,
       outlinedColumnName: null,
       directPathLastUpdated: 0,
+      hideFilter:true,
+      chartIds:[],
+      canRender:false
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
@@ -116,6 +120,73 @@ class ChartHolder extends React.Component {
 
   componentDidMount() {
     this.hideOutline({}, this.state);
+    let sessionData;
+    let dashboardIDs;
+    let matchedDashboardIDs;
+    let chartIDs;
+
+
+    try {
+      sessionData = JSON.parse(localStorage.getItem('dashData'));
+    }
+    catch {
+    }
+//check in localstorage
+if(sessionData){
+  this.setState({canRender:true});
+  if(sessionData['data'] && sessionData['data'].length > 0){
+    dashboardIDs = sessionData['extra'].map((element)=>{return element['dashId']});
+    chartIDs = sessionData['extra'].map((element)=>{return element['chartId']});
+    this.setState({chartIds:chartIDs})
+    matchedDashboardIDs =  dashboardIDs.filter((element => {
+      return (window.location.href.indexOf('dashboard/'+element) > -1)  
+    }));
+  }
+  if(sessionData['data'] && sessionData['data'].length > 0 &&
+  matchedDashboardIDs.length > 0) {
+  //hide 
+  }
+else {
+//show
+this.setState({hideFilter:false})
+}
+
+}
+//if not in localstorage call api for data
+    else{
+      let url = APIURLS.url3;
+      fetch(url, { method: "GET" })
+      .then((res) => res.json())
+      .then((data) => {
+        localStorage.setItem('dashData',JSON.stringify(data));
+        sessionData = JSON.parse(localStorage.getItem('dashData'));
+        this.setState({canRender:true})
+        if(sessionData){
+          if(sessionData['data'] && sessionData['data'].length > 0){
+            dashboardIDs = sessionData['extra'].map((element)=>{return element['dashId']});
+            chartIDs = sessionData['extra'].map((element)=>{return element['chartId']});
+            this.setState({chartIds:chartIDs})
+            matchedDashboardIDs =  dashboardIDs.filter((element => {
+              return (window.location.href.indexOf('dashboard/'+element) > -1)  
+            }));
+          }
+          if(sessionData['data'] && sessionData['data'].length > 0 &&
+          matchedDashboardIDs.length > 0) {
+          //hide 
+          }
+        else {
+        //show
+        this.setState({hideFilter:false})
+        }
+      }
+
+      }).catch((err) => {
+//show
+
+  this.setState({hideFilter:false})
+      })
+    }
+
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -160,7 +231,7 @@ class ChartHolder extends React.Component {
   }
 
   render() {
-    const { isFocused } = this.state;
+    const { isFocused,hideFilter,chartIds,canRender } = this.state;
 
     const {
       component,
@@ -177,8 +248,13 @@ class ChartHolder extends React.Component {
       isComponentVisible,
     } = this.props;
 
-    if(component.meta.chartId === 108){
-    console.log("component",component);
+    
+    if(!canRender){
+return null;
+    }
+
+    if( chartIds.indexOf(component.meta.chartId) > -1 && hideFilter){
+      return null;
         }
 
     // inherit the size of parent columns

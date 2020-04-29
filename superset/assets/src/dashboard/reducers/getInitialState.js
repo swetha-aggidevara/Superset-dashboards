@@ -56,6 +56,7 @@ export default function(bootstrapData) {
     preselectFilters = JSON.parse(
       getParam('preselect_filters') || dashboard.metadata.default_filters,
     );
+    preselectFilters=JSON.parse(dashboard['metadata']['default_filters']);
   } catch (e) {
     //
   }
