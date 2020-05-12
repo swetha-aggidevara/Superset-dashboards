@@ -813,3 +813,49 @@ class SupersetSecurityManager(SecurityManager):
         """
 
         self.assert_datasource_permission(viz.datasource)
+
+from flask import redirect, g, flash, request
+from flask_appbuilder.security.views import UserDBModelView,AuthDBView
+from superset.security import SupersetSecurityManager
+from flask_appbuilder.security.views import expose
+from flask_appbuilder.security.manager import BaseSecurityManager
+from flask_login import login_user, logout_user
+from flask_appbuilder.security.forms import LoginForm_db
+import requests
+""" 
+class CustomAuthDBView(AuthDBView):
+    login_template = "appbuilder/general/security/login_db.html"
+
+    @expose("/login/", methods=["GET", "POST"])
+    def login(self):
+        data=None
+        redir=None
+        if g.user is not None and g.user.is_authenticated:
+            return redirect(self.appbuilder.get_url_for_index)
+        form = LoginForm_db()
+        if form.validate_on_submit():
+            user = self.appbuilder.sm.auth_user_db(
+                form.username.data, form.password.data
+            )
+            if not user:
+                flash(self.invalid_login_message,"warning")
+                return redirect(self.appbuilder.get_url_for_login)
+            
+            r=requests.get('http://localhost:8088/getDataForDashboard?extra='+user.username)
+            data=r.json()
+            if len(data['data']) is 1:
+                redir = '/superset/dashboard/'+str(data['data'][0]['dashId'])+'/'
+
+            else:
+                redir=self.appbuilder.get_url_for_index
+            
+            login_user(user, remember=False)
+            return redirect(redir)
+        return self.render_template(
+            self.login_template, title=self.title, form=form, appbuilder=self.appbuilder
+        )
+
+class CustomSecurityManager(SupersetSecurityManager):
+    authdbview = CustomAuthDBView
+    def __init__(self, appbuilder):
+        super(CustomSecurityManager, self).__init__(appbuilder) """

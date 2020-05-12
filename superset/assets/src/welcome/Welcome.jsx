@@ -25,6 +25,7 @@ import Favorites from '../profile/components/Favorites';
 import DashboardTable from './DashboardTable';
 import moment from 'moment'
 import { APIURLS } from 'src/explore/constants';
+import { SupersetClient } from '@superset-ui/connection';
 
 const propTypes = {
   user: PropTypes.object.isRequired,
@@ -34,6 +35,7 @@ export default class Welcome extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
+      canRender:false,
       search: '',
     };
     this.onSearchChange = this.onSearchChange.bind(this);
@@ -59,13 +61,35 @@ export default class Welcome extends React.PureComponent {
         localStorage.setItem('dashData',JSON.stringify(data));
       }).catch((err) => {
       })
+      SupersetClient.get({
+        endpoint: '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
+      })
+        .then(({ json }) => {
+          console.log(json.result);
 
+          if(
+            json.result && json.result.length===1){
+          window.location.href = json.result[0]['url'];
+          return null;
+          }
+          else{
+            this.setState({canRender:true})
+          }
+    
+        })
+        .catch(() => {
+          this.setState({canRender:true})
+          console.log("error");
+        });
   }
 
   onSearchChange(event) {
     this.setState({ search: event.target.value });
   }
   render() {
+    if(!this.state.canRender){
+      return null;
+    }
     
       return (
       <div className="container welcome">

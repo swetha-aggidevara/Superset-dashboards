@@ -771,11 +771,12 @@ def getDataForProgram(program_name):
     s2.close()
 
     return {'data':resData}
-
+from flask import request
 def getData():
     try:
 
         username=None
+        usernamefromparams = request.args.get('extra',None)
         user_id=session.get('user_id',None)
         userRole=None
         dburl=None
@@ -817,6 +818,12 @@ def getData():
             username=r.username
 
     #get additional data on basis of userinfo
+
+
+
+        if usernamefromparams is not None:
+            username=usernamefromparams
+            
         result = s2.query(UserProgram).filter(UserProgram.username==username).all()
         
         resData = []

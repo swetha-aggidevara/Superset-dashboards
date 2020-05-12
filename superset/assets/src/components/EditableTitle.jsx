@@ -50,6 +50,7 @@ export default class EditableTitle extends React.PureComponent {
     this.state = {
       isEditing: false,
       title: this.props.title,
+      program_name:this.props.program_name,
       lastTitle: this.props.title,
     };
     this.handleClick = this.handleClick.bind(this);

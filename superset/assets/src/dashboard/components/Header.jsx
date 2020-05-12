@@ -43,6 +43,7 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from '../../logger/LogUtils';
+import {APIURLS} from '../../../src/explore/constants'
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -102,7 +103,7 @@ class Header extends React.PureComponent {
     super(props);
     this.state = {
       didNotifyMaxUndoHistoryToast: false,
-      emphasizeUndo: false,
+      emphasizeUndo: false,canRender:false,program_name:undefined
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -119,8 +120,37 @@ class Header extends React.PureComponent {
   }
 
   componentDidMount() {
+    const {filters} = this.props;
+    let program_name;
     const refreshFrequency = this.props.refreshFrequency;
     this.props.startPeriodicRender(refreshFrequency * 1000);
+
+    fetch(APIURLS.url3, { method: "GET" })
+    .then((res) => res.json())
+    .then((data) => {
+
+      if(data && data['data'] && data['data'].length > 0) {
+        this.setState({canRender:true})
+        if(filters && Object.keys(filters).length > 0 && this.state.canRender){
+          let x = Object.keys(filters).filter((element)=>{
+          return filters[element].hasOwnProperty('program_name');
+          })
+          program_name=filters[x[0]]['program_name'][0];
+          this.setState({'program_name':program_name})
+          
+              }
+              else{
+                this.setState({'program_name':program_name})
+              }
+      }
+      else{
+        this.setState({canRender:false})
+      }
+     
+      localStorage.setItem('dashData',JSON.stringify(data));
+    }).catch((err) => {
+    })
+
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -287,12 +317,17 @@ class Header extends React.PureComponent {
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
     const popButton = hasUnsavedChanges;
+    const {program_name} =this.state;
+    let completeTitle = dashboardTitle;
 
+    if(program_name){
+      completeTitle = `${dashboardTitle} (${program_name})`;
+    }
     return (
       <div className="dashboard-header">
         <div className="dashboard-component-header header-large">
           <EditableTitle
-            title={dashboardTitle}
+            title={completeTitle}
             canEdit={userCanEdit && editMode}
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
