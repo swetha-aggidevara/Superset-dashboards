@@ -227,6 +227,9 @@ class ChartRenderer extends React.Component {
         else if(extra_filter_granualarity && extra_filter_granualarity.val === 'P1Y') {
           formData.x_axis_format = '%Y';
         }
+        else if(extra_filter_granualarity && extra_filter_granualarity.val === 'P1D') {
+          formData.x_axis_format = '%d/%m/%Y'
+        }
       }
     }
 

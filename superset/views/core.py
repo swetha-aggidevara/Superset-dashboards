@@ -114,11 +114,12 @@ from .customdata import country_offset
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import Column, Integer, String,Float
+from sqlalchemy import Column, Integer, String,Float,Boolean
+from sqlalchemy import ARRAY
 from sqlalchemy.ext.declarative import declarative_base
 from flask import current_app
-from flask_appbuilder.security.sqla.models import User
-from superset.models.core import Database
+from flask_appbuilder.security.sqla.models import User,assoc_user_role,Role
+from superset.models.core import Database,Dashboard,dashboard_user
 from sqlalchemy.engine.url import make_url
 Base = declarative_base()
 config = app.config
@@ -772,13 +773,15 @@ def getDataForProgram(program_name):
 
     return {'data':resData}
 from flask import request
+from superset import jinja_context
 def getData():
     try:
 
         username=None
         usernamefromparams = request.args.get('extra',None)
         user_id=session.get('user_id',None)
-        userRole=None
+        userRole=[]
+        userDashboards = []
         dburl=None
         dashData = []
 
@@ -809,6 +812,8 @@ def getData():
             dashData.append({'dashId':value.dashboard})
 
         for value in dashData:
+            resultForSlug=s1.query(Dashboard).filter(Dashboard.id==value['dashId']).first()
+            value['slug']=resultForSlug.slug
             result = s2.query(UserProgram.chartid).filter(UserProgram.dashboard==value['dashId']).first()
             value['chartId']=result.chartid
 
@@ -817,13 +822,22 @@ def getData():
         for r in userInfo:
             username=r.username
 
+    #get role
+        for r in s1.query(assoc_user_role).filter_by(user_id=user_id).all():
+            s=s1.query(Role).filter_by(id=r.role_id).first()
+            userRole.append(s.name)
+
+    #get dashboard from owners list
+        for r in s1.query(dashboard_user).filter_by(user_id=user_id).all():
+            userDashboards.append(r.dashboard_id)
+
     #get additional data on basis of userinfo
 
 
 
         if usernamefromparams is not None:
             username=usernamefromparams
-            
+        jinja_context.BASE_CONTEXT['username']=username            
         result = s2.query(UserProgram).filter(UserProgram.username==username).all()
         
         resData = []
@@ -833,10 +847,24 @@ def getData():
 
         if len(resData)> 0:
             for data in resData:
+
+                resultForSlug=s1.query(Dashboard).filter(Dashboard.id==data['dashId']).all()
+                for res in resultForSlug:
+                    data['dashSlug'] = res.slug
+
                 resultForLocation = s2.query(Programlocation).filter(Programlocation.program_name==data['programName']).all()
                 for r in resultForLocation:
                     obj = {'latitude':r.latitude,'longitude':r.longitude,'zoom':r.zoom}
                     data['extra'] = obj
+
+
+        #for assigning program names to dashboardids
+        for value in dashData:
+            newArr = []
+            res123=s2.query(UserProgram).filter(UserProgram.dashboard==value['dashId'],UserProgram.username==username).all()
+            for r in res123:
+                newArr.append(r.program_name)
+            value['programs']=newArr
 
     #commit and close all sessions
         s1.commit()
@@ -844,7 +872,7 @@ def getData():
         s2.commit()
         s2.close()
     
-        return {"data":resData,"extra":dashData}
+        return {"data":resData,"extra":dashData,"role":userRole,"userDashboards":userDashboards}
 
     except:
         return{"data":[],"extra":[],"error":"True"}
@@ -2369,10 +2397,32 @@ class Superset(BaseSupersetView):
         if request.args.get("json") == "true":
             return json_success(json.dumps(bootstrap_data))
 #modify dashboard data acc to user program
-        try:
+        try:    
+            def search(list, platform):
+                for i in range(len(list)):
+                    if list[i] == platform:
+                        return True
+                return False
+
             resData = getData()['data']
             extraData = getData()['extra']
-            status = False
+            roles = getData()['role']
+            userDashboards=getData()['userDashboards']
+            isProgramAdmin = search(roles,'Program Admin')
+            isOwnerofDashbord = search(userDashboards,bootstrap_data['dashboard_data']['id'])
+            print("**************************************",roles,isProgramAdmin,userDashboards,isOwnerofDashbord)
+            if isOwnerofDashbord is False and isProgramAdmin is True:
+                return "UNAUTHORIZED"
+            for data in extraData:
+                if bootstrap_data['dashboard_data']['id']==data['dashId'] and len(data['programs'])==1:
+                    dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
+                    x=json.loads(dfilters)
+                    x[data['chartId']]={'program_name':  [data['programs'][0]]  } #program should be passed as an array
+                    bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
+                
+                else:
+                    pass
+            """ status = False
 
             for data in resData:
                 if bootstrap_data['dashboard_data']['id']==data['dashId']:
@@ -2393,7 +2443,7 @@ class Superset(BaseSupersetView):
                     bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
                 
                 else:
-                    pass
+                    pass """
 
         except:
             pass

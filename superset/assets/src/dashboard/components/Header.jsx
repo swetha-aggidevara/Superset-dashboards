@@ -125,7 +125,7 @@ class Header extends React.PureComponent {
     const refreshFrequency = this.props.refreshFrequency;
     this.props.startPeriodicRender(refreshFrequency * 1000);
 
-    fetch(APIURLS.url3, { method: "GET" })
+    /* fetch(APIURLS.url3, { method: "GET" })
     .then((res) => res.json())
     .then((data) => {
 
@@ -150,7 +150,7 @@ class Header extends React.PureComponent {
       localStorage.setItem('dashData',JSON.stringify(data));
     }).catch((err) => {
     })
-
+ */
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -317,12 +317,12 @@ class Header extends React.PureComponent {
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
     const popButton = hasUnsavedChanges;
-    const {program_name} =this.state;
+    //const {program_name} =this.state;
     let completeTitle = dashboardTitle;
-
+/* 
     if(program_name){
       completeTitle = `${dashboardTitle} (${program_name})`;
-    }
+    } */
     return (
       <div className="dashboard-header">
         <div className="dashboard-component-header header-large">

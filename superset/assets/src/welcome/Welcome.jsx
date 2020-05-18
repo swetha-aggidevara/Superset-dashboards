@@ -58,6 +58,7 @@ export default class Welcome extends React.PureComponent {
       fetch(url3, { method: "GET" })
       .then((res) => res.json())
       .then((data) => {
+        console.log("data",data);
         localStorage.setItem('dashData',JSON.stringify(data));
       }).catch((err) => {
       })
@@ -65,7 +66,7 @@ export default class Welcome extends React.PureComponent {
         endpoint: '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
       })
         .then(({ json }) => {
-          console.log(json.result);
+          console.log("res",json.result);
 
           if(
             json.result && json.result.length===1){

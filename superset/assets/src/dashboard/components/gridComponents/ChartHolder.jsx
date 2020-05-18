@@ -122,10 +122,80 @@ class ChartHolder extends React.Component {
     this.hideOutline({}, this.state);
     let sessionData;
     let dashboardIDs;
+    let slugs;
     let matchedDashboardIDs;
+    let matchedSlugs;
     let chartIDs;
 
+try{
+  sessionData = JSON.parse(localStorage.getItem('dashData'));
+}catch{
 
+}
+
+if(sessionData && sessionData['data'] && sessionData['data'].length > 0 && sessionData['extra'] && sessionData['extra'].length > 0){
+  let url = APIURLS.url3;
+  dashboardIDs = sessionData['extra'].map((element)=>{return element['dashId']});
+  slugs = sessionData['extra'].map((element)=>{return element['slug']});
+console.log("*IN SESSION*",dashboardIDs,slugs);
+matchedDashboardIDs =  dashboardIDs.filter((element => {
+return (window.location.href.indexOf('dashboard/'+element) > -1)  
+}));
+matchedSlugs =  slugs.filter((element => {
+return (window.location.href.indexOf('dashboard/'+element) > -1)  
+}));
+console.log(matchedSlugs,matchedDashboardIDs);
+if(
+  (matchedDashboardIDs || matchedSlugs) && (matchedSlugs.length >0 || matchedDashboardIDs.length > 0)
+  ){
+//call api again and again
+fetch(url, { method: "GET" })
+.then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
+  this.setState({canRender:true})
+})
+  }
+
+else{
+  this.setState({canRender:true})  
+}
+
+}
+
+else{
+  let url = APIURLS.url3;
+  fetch(url, { method: "GET" })
+  .then((res) => res.json()).then((data)=>{
+    localStorage.setItem('dashData',JSON.stringify(data));
+    console.log('data',data['data'],data['extra']);
+    dashboardIDs = data['extra'].map((element)=>{return element['dashId']});
+    slugs = data['extra'].map((element)=>{return element['slug']});
+console.log("*IN API ELSE*",dashboardIDs,slugs);
+matchedDashboardIDs =  dashboardIDs.filter((element => {
+return (window.location.href.indexOf('dashboard/'+element) > -1)  
+}));
+matchedSlugs =  slugs.filter((element => {
+return (window.location.href.indexOf('dashboard/'+element) > -1)  
+}));
+  console.log(matchedSlugs,matchedDashboardIDs);
+  if(
+    (matchedDashboardIDs || matchedSlugs) && (matchedSlugs.length >0 || matchedDashboardIDs.length > 0)
+    ){
+//call api again and again
+fetch(url, { method: "GET" })
+  .then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
+    this.setState({canRender:true})
+  })
+    }
+else{
+  this.setState({canRender:true})  
+}
+
+  }).catch()
+
+
+}
+
+/* 
     try {
       sessionData = JSON.parse(localStorage.getItem('dashData'));
     }
@@ -159,8 +229,9 @@ this.setState({hideFilter:false})
       .then((res) => res.json())
       .then((data) => {
         localStorage.setItem('dashData',JSON.stringify(data));
+        console.log(data,"called api");
         sessionData = JSON.parse(localStorage.getItem('dashData'));
-        this.setState({canRender:true})
+        
         if(sessionData){
           if(sessionData['data'] && sessionData['data'].length > 0){
             dashboardIDs = sessionData['extra'].map((element)=>{return element['dashId']});
@@ -185,7 +256,7 @@ this.setState({hideFilter:false})
 
   this.setState({hideFilter:false})
       })
-    }
+    } */
 
   }
 

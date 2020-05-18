@@ -51,12 +51,14 @@ export default function(bootstrapData) {
 
   const dashboard = { ...bootstrapData.dashboard_data };
   let preselectFilters = {};
+  console.log(dashboard,"dashboard");
   try {
     // allow request parameter overwrite dashboard metadata
     preselectFilters = JSON.parse(
       getParam('preselect_filters') || dashboard.metadata.default_filters,
     );
     preselectFilters=JSON.parse(dashboard['metadata']['default_filters']);
+    console.log("preselect",preselectFilters)
   } catch (e) {
     //
   }
