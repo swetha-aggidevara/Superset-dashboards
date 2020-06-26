@@ -197,7 +197,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           </MenuItem>
         )}
 
-        <URLShortLinkModal
+        {/* <URLShortLinkModal
           url={getDashboardUrl(
             window.location.pathname,
             this.props.filters,
@@ -208,7 +208,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           addDangerToast={this.props.addDangerToast}
           isMenuItem
           triggerNode={<span>{t('Share dashboard')}</span>}
-        />
+        /> */}
 
         {editMode && (
           <CssEditor
