@@ -121,6 +121,8 @@ from flask import current_app
 from flask_appbuilder.security.sqla.models import User,assoc_user_role,Role
 from superset.models.core import Database,Dashboard,dashboard_user
 from sqlalchemy.engine.url import make_url
+from binascii import hexlify,unhexlify
+from simplecrypt import encrypt, decrypt
 Base = declarative_base()
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
@@ -778,8 +780,9 @@ def getData():
     try:
 
         username=None
-        usernamefromparams = request.args.get('extra',None)
         user_id=session.get('user_id',None)
+        userName = session.get('userName',None)  # userName stored in session which is passe dusing post request and login by params
+        userId = session.get('userId',None) # userID stored in session which is passe dusing post request and login by params
         userRole=[]
         userDashboards = []
         dburl=None
@@ -798,7 +801,7 @@ def getData():
         s1= SessionForSqlite()
 
     #for getting dbURL for postgres
-        dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
+        """ dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
         for r in dbURL:
             dburl = r.sqlalchemy_uri_decrypted
             postgre_engine=create_engine(dburl)
@@ -820,12 +823,12 @@ def getData():
     #get userinfo
         userInfo=s1.query(User).filter(User.id==user_id).all()
         for r in userInfo:
-            username=r.username
+            username=r.username"""
 
     #get role
         for r in s1.query(assoc_user_role).filter_by(user_id=user_id).all():
             s=s1.query(Role).filter_by(id=r.role_id).first()
-            userRole.append(s.name)
+            userRole.append(s.name) 
 
     #get dashboard from owners list
         for r in s1.query(dashboard_user).filter_by(user_id=user_id).all():
@@ -833,13 +836,7 @@ def getData():
 
     #get additional data on basis of userinfo
 
-
-
-        if usernamefromparams is not None:
-            username=usernamefromparams
-        jinja_context.BASE_CONTEXT['username']=username            
-        result = s2.query(UserProgram).filter(UserProgram.username==username).all()
-        
+        """ result = s2.query(UserProgram).filter(UserProgram.username==userName).all()
         resData = []
 
         for r in result:
@@ -861,18 +858,18 @@ def getData():
         #for assigning program names to dashboardids
         for value in dashData:
             newArr = []
-            res123=s2.query(UserProgram).filter(UserProgram.dashboard==value['dashId'],UserProgram.username==username).all()
+            res123=s2.query(UserProgram).filter(UserProgram.dashboard==value['dashId'],UserProgram.username==userName).all()
             for r in res123:
                 newArr.append(r.program_name)
             value['programs']=newArr
-
+ """
     #commit and close all sessions
         s1.commit()
         s1.close()
-        s2.commit()
-        s2.close()
-    
-        return {"data":resData,"extra":dashData,"role":userRole,"userDashboards":userDashboards}
+        #s2.commit()
+        #s2.close()
+        #return {"data":resData,"extra":dashData,"role":userRole,"userDashboards":userDashboards}
+        return {"userDashboards":userDashboards,"role":userRole}
 
     except:
         return{"data":[],"extra":[],"error":"True"}
@@ -885,6 +882,20 @@ def getDataForDashboard():
 @app.route("/getDataForProram",methods=["GET","POST"])
 def getDataForProram():
     return getDataForProgram(request.args.get('program_name',None))
+""" 
+@app.route('/encodeUrl',methods=['GET', 'POST'])
+def encodeUrl():
+    saltText = current_app.config.get("SALTING_TEXT")
+    message=json.loads(request.data)['request']['plainText']
+    ciphertext = encrypt(saltText, message.encode('utf8'))
+    return {'response':"Ok",'cipherText':hexlify(ciphertext),"redata":request.data}
+
+@app.route('/decodeUrl',methods=['GET', 'POST'])
+def decodeUrl():
+    saltText = current_app.config.get("SALTING_TEXT")
+    ciphertext=unhexlify(json.loads(request.data)['request']['cipherText'])
+    plaintext = decrypt(saltText, ciphertext)
+    return {"response":"Ok","plaintext":plaintext.decode('utf8')} """
 
 class KV(BaseSupersetView):
 
@@ -2404,8 +2415,8 @@ class Superset(BaseSupersetView):
                         return True
                 return False
 
-            resData = getData()['data']
-            extraData = getData()['extra']
+            #resData = getData()['data']
+            #extraData = getData()['extra']
             roles = getData()['role']
             userDashboards=getData()['userDashboards']
             isProgramAdmin = search(roles,'Program Admin')
@@ -2413,7 +2424,7 @@ class Superset(BaseSupersetView):
             print("**************************************",roles,isProgramAdmin,userDashboards,isOwnerofDashbord)
             if isOwnerofDashbord is False and isProgramAdmin is True:
                 return "UNAUTHORIZED"
-            for data in extraData:
+            """ for data in extraData:
                 if bootstrap_data['dashboard_data']['id']==data['dashId'] and len(data['programs'])==1:
                     dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
                     x=json.loads(dfilters)
@@ -2421,31 +2432,10 @@ class Superset(BaseSupersetView):
                     bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
                 
                 else:
-                    pass
-            """ status = False
-
-            for data in resData:
-                if bootstrap_data['dashboard_data']['id']==data['dashId']:
-                    status=True
-                    dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
-                    x=json.loads(dfilters)
-                    x[data['chartId']]={'program_name':[data['programName']]}
-                    bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
-                
-                else:
-                    pass
-
-            for data in extraData:
-                if bootstrap_data['dashboard_data']['id']==data['dashId'] and len(resData) > 0 and status is False:
-                    dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
-                    x=json.loads(dfilters)
-                    x[data['chartId']]={'program_name':'zxsajkjbvdjfnnjd'}
-                    bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
-                
-                else:
                     pass """
 
         except:
+            print("###### GOT ERROR ###")
             pass
 
         return self.render_template(

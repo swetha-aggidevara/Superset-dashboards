@@ -38,6 +38,7 @@ BASE_CONTEXT = {
     "time": time,
     "timedelta": timedelta,
     "uuid": uuid,
+    "test":('Production Test - Nineleaps','Training on PDA Participant application')
 }
 BASE_CONTEXT.update(config.get("JINJA_CONTEXT_ADDONS", {}))
 

@@ -39,6 +39,13 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName
 
+import json
+import requests
+from flask import redirect, g, flash, request, session
+from flask_appbuilder.security.views import UserDBModelView, AuthDBView, expose
+from flask_appbuilder.security.manager import BaseSecurityManager
+from flask_login import login_user, logout_user
+
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
@@ -814,48 +821,147 @@ class SupersetSecurityManager(SecurityManager):
 
         self.assert_datasource_permission(viz.datasource)
 
-from flask import redirect, g, flash, request
-from flask_appbuilder.security.views import UserDBModelView,AuthDBView
-from superset.security import SupersetSecurityManager
-from flask_appbuilder.security.views import expose
-from flask_appbuilder.security.manager import BaseSecurityManager
-from flask_login import login_user, logout_user
-from flask_appbuilder.security.forms import LoginForm_db
+
+# Custom Security for user login by passing parameters
+global myObj
+from superset import security
 import requests
-""" 
+import datetime
+
+
 class CustomAuthDBView(AuthDBView):
+
     login_template = "appbuilder/general/security/login_db.html"
+    userToLogIn = None
+    isValid = False
+    userObj = None
+    programs = None
+
+    # function for searching an element in a list/array
+    def search(self, list, text):
+        for i in range(len(list)):
+            if text.__contains__(list[i]):
+                return True
+        return False
+
+    # api to get encrypted parameters to be used for login use
+    @expose("/handleLogin", methods=["GET", "POST"])
+    def handleLogin(self):
+        req = {
+            "request": {"cipherText": json.loads(request.data)["request"]["encrypted"]}
+        }
+
+        # to decrypt encrypted parameters
+        r = requests.post("http://localhost:8000/api/v1/decrypt", json=req)
+    
+        self.userObj = r.json()["response"]["decryptedObject"]
+
+        iatObj = r.json()["response"]["decryptedObject"]["iat"]
+        self.programs = r.json()["response"]["decryptedObject"]["programs"]
+        dateFromReq = datetime.datetime(
+            iatObj["year"],
+            iatObj["month"] + 1,
+            iatObj["day"],
+            iatObj["hour"],
+            iatObj["minutes"],
+            iatObj["seconds"],
+            iatObj["milis"],
+        )
+        currentDate = datetime.datetime.utcnow()
+        print("###@@@", "dateFromReq", dateFromReq, "currentDate", currentDate)
+
+        # check validity of token and redirect url
+        self.isValid = (
+            0 <= (dateFromReq - currentDate + datetime.timedelta(minutes=30)).days
+        ) and (
+            request.headers.get("Referer") is not None
+            and self.search(
+                current_app.config.get("VALID_REFERER_URLS"),
+                request.headers.get("Referer"),
+            )
+        )
+        return {
+            "response": "OK",
+            "encrypted": json.loads(request.data)["request"]["encrypted"],
+        }
 
     @expose("/login/", methods=["GET", "POST"])
     def login(self):
-        data=None
-        redir=None
-        if g.user is not None and g.user.is_authenticated:
-            return redirect(self.appbuilder.get_url_for_index)
-        form = LoginForm_db()
-        if form.validate_on_submit():
-            user = self.appbuilder.sm.auth_user_db(
-                form.username.data, form.password.data
-            )
-            if not user:
-                flash(self.invalid_login_message,"warning")
-                return redirect(self.appbuilder.get_url_for_login)
-            
-            r=requests.get('http://localhost:8088/getDataForDashboard?extra='+user.username)
-            data=r.json()
-            if len(data['data']) is 1:
-                redir = '/superset/dashboard/'+str(data['data'][0]['dashId'])+'/'
-
-            else:
-                redir=self.appbuilder.get_url_for_index
-            
-            login_user(user, remember=False)
-            return redirect(redir)
-        return self.render_template(
-            self.login_template, title=self.title, form=form, appbuilder=self.appbuilder
+        from superset import jinja_context
+        redirect_url = self.appbuilder.get_url_for_index
+        sample_url = "/superset/dashboard/7/"
+        role = None
+        userId = None
+        programs = self.programs
+        dashboard = request.args.get("dashboard")
+        isValidReferer = request.headers.get("Referer") is not None and self.search(
+            current_app.config.get("VALID_REFERER_URLS"), request.headers.get("Referer")
         )
+
+        if self.isValid == True and isValidReferer == True:
+            try:
+                resObj = self.userObj
+                role = resObj["role"]
+                userId = resObj["userId"]
+
+                if role == "Program Admin":
+                    self.userToLogIn = "public_user"
+
+                elif role == "Admin":
+                    self.userToLogIn = "admin"
+
+                else:
+                    pass
+
+            except:
+                pass
+
+            user = self.appbuilder.sm.find_user(username=self.userToLogIn)
+            login_user(user, remember=False)
+            #add additional information in session
+            session["userId"] = userId
+            session["role"] = role
+            session["referer"] = request.headers.get("Referer")
+            session['programs'] = programs
+        
+            return redirect(redirect_url)
+        else:
+            flash("Unable to auto login", "warning")
+            #return 'Invalid Url'
+            return super(CustomAuthDBView, self).login()
+            #return redirect('/')
+
+    @expose("/logout/", methods=["GET", "POST"])
+    def logout(self):
+        logout_url: str = "/"
+        pdaUrl = current_app.config.get('PDA_URL') 
+        pdaLoginPageUrl = current_app.config.get('PDA_LOGIN_URL')
+        customLoginEndPoint = current_app.config.get('CUSTOM_LOGIN_ENDPOINT')
+      
+        if session.get("referer", None) is not None and session.get(
+            "referer"
+        ).__contains__(pdaUrl):
+            # logout url is pda login page
+            logout_url = pdaLoginPageUrl
+
+        elif session.get("referer", None) is not None and session.get(
+            "referer"
+        ).__contains__(customLoginEndPoint):
+            logout_url = session.get("referer").replace("customlogin", "logout")
+
+        else:
+            pass
+
+        # return redirect("/")
+        session.pop('referer',None)
+        session.pop('userName',None)
+        logout_user()
+
+        return redirect(logout_url)
+
 
 class CustomSecurityManager(SupersetSecurityManager):
     authdbview = CustomAuthDBView
+
     def __init__(self, appbuilder):
-        super(CustomSecurityManager, self).__init__(appbuilder) """
+        super(CustomSecurityManager, self).__init__(appbuilder)

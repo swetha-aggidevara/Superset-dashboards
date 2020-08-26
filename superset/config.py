@@ -36,6 +36,7 @@ from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.stats_logger import DummyStatsLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from superset.security import CustomSecurityManager
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -72,7 +73,15 @@ VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
 )
 
 POSTGRE_DB_NAME=os.environ.get('posgredbname')
-
+SALTING_TEXT = "exacdf323"
+VALID_REFERER_URLS = [
+    "http://localhost:4200/customlogin",
+    "http://localhost:8000/customlogin",
+    "https://pda.socion.io",
+]
+PDA_URL = "https://pda.socion.io/"
+PDA_LOGIN_URL = "https://pda.socion.io/oauth/login"
+CUSTOM_LOGIN_ENDPOINT = "customlogin"
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
 # max rows retrieved by filter select auto complete
@@ -91,8 +100,7 @@ SUPERSET_WEBSERVER_TIMEOUT = 60
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 EMAIL_NOTIFICATIONS = False
-""" from superset.security import CustomSecurityManager
-CUSTOM_SECURITY_MANAGER = None """
+CUSTOM_SECURITY_MANAGER = CustomSecurityManager
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
@@ -376,7 +384,10 @@ BACKUP_COUNT = 30
 #     pass
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "pk.eyJ1IjoicGF2YW50aGVqIiwiYSI6ImNrMHFna3FibTA3bnQzZXBnN3pqd3VtcTMifQ.xX2BQNLshtzncvDMcG4aNA")
+MAPBOX_API_KEY = os.environ.get(
+    "MAPBOX_API_KEY",
+    "pk.eyJ1IjoicGF2YW50aGVqIiwiYSI6ImNrMHFna3FibTA3bnQzZXBnN3pqd3VtcTMifQ.xX2BQNLshtzncvDMcG4aNA",
+)
 
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored

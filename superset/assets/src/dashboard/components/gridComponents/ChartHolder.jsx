@@ -127,7 +127,7 @@ class ChartHolder extends React.Component {
     let matchedSlugs;
     let chartIDs;
 
-try{
+/* try{
   sessionData = JSON.parse(localStorage.getItem('dashData'));
 }catch{
 
@@ -193,71 +193,7 @@ else{
   }).catch()
 
 
-}
-
-/* 
-    try {
-      sessionData = JSON.parse(localStorage.getItem('dashData'));
-    }
-    catch {
-    }
-//check in localstorage
-if(sessionData){
-  this.setState({canRender:true});
-  if(sessionData['data'] && sessionData['data'].length > 0){
-    dashboardIDs = sessionData['extra'].map((element)=>{return element['dashId']});
-    chartIDs = sessionData['extra'].map((element)=>{return element['chartId']});
-    this.setState({chartIds:chartIDs})
-    matchedDashboardIDs =  dashboardIDs.filter((element => {
-      return (window.location.href.indexOf('dashboard/'+element) > -1)  
-    }));
-  }
-  if(sessionData['data'] && sessionData['data'].length > 0 &&
-  matchedDashboardIDs.length > 0) {
-  //hide 
-  }
-else {
-//show
-this.setState({hideFilter:false})
-}
-
-}
-//if not in localstorage call api for data
-    else{
-      let url = APIURLS.url3;
-      fetch(url, { method: "GET" })
-      .then((res) => res.json())
-      .then((data) => {
-        localStorage.setItem('dashData',JSON.stringify(data));
-        console.log(data,"called api");
-        sessionData = JSON.parse(localStorage.getItem('dashData'));
-        
-        if(sessionData){
-          if(sessionData['data'] && sessionData['data'].length > 0){
-            dashboardIDs = sessionData['extra'].map((element)=>{return element['dashId']});
-            chartIDs = sessionData['extra'].map((element)=>{return element['chartId']});
-            this.setState({chartIds:chartIDs})
-            matchedDashboardIDs =  dashboardIDs.filter((element => {
-              return (window.location.href.indexOf('dashboard/'+element) > -1)  
-            }));
-          }
-          if(sessionData['data'] && sessionData['data'].length > 0 &&
-          matchedDashboardIDs.length > 0) {
-          //hide 
-          }
-        else {
-        //show
-        this.setState({hideFilter:false})
-        }
-      }
-
-      }).catch((err) => {
-//show
-
-  this.setState({hideFilter:false})
-      })
-    } */
-
+} */
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -319,14 +255,14 @@ this.setState({hideFilter:false})
       isComponentVisible,
     } = this.props;
 
-    
+    /* 
     if(!canRender){
 return null;
     }
 
     if( chartIds.indexOf(component.meta.chartId) > -1 && hideFilter){
       return null;
-        }
+        } */
 
     // inherit the size of parent columns
     const widthMultiple =

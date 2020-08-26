@@ -258,6 +258,8 @@ class BaseViz(object):
         utils.split_adhoc_filters_into_base_filters(self.form_data)
 
     def query_obj(self):
+        from superset import jinja_context
+        from flask import session
         """Building a query object"""
         form_data = self.form_data
         self.process_query_filters()
@@ -323,6 +325,15 @@ class BaseViz(object):
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
         }
+        # add userId and role to jinja context 
+        jinja_context.BASE_CONTEXT['userId']= session.get('userId',None)
+        jinja_context.BASE_CONTEXT['role'] = session.get('role',None)
+    
+        if len(tuple(session.get('programs'))) == 0:
+            jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+        else:
+            jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
+        print("IN QUERY OBJECT******************",session)
         return d
 
     @property
@@ -1840,6 +1851,7 @@ class FilterBoxViz(BaseViz):
                 d[col] = [
                     {"id": row[0], "text": row[0]} for row in df.itertuples(index=False)
                 ]
+        newData = {'program_name': [{'id': 'Tanzania Project', 'text': 'Tanzania Project'}, {'id': 'pro 2', 'text': 'pro 2'}]}
         return d
 
 
