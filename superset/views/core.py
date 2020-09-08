@@ -718,6 +718,15 @@ def getUtcOffset():
     PostgresBaseEngineSpec._time_grain_functions = time_grain_functions
     return {'res':offsetFromSession}
 
+
+@app.route("/getAnonymous",methods=['GET'])
+def getAnonymous():
+    if g.user.is_anonymous:
+        return {"response":"Ok","anonymous":True}
+    else:
+        return {"response":"Ok","anonymous":False}
+
+    return {'res':'Offset Set Ok'}
 class UserProgram(Base):
     __tablename__='userprogram'
     __table_args__ = {'extend_existing': True} 
@@ -762,10 +771,14 @@ def getDataForProgram(program_name):
     SessionForPostgre = sessionmaker(bind=postgre_engine)
     s2 = SessionForPostgre()
 
-    result=s2.query(Programlocation).filter(Programlocation.program_name==program_name).all()
+    try:
+        result=s2.query(Programlocation).filter(Programlocation.program_name==program_name).all()
 
-    for r in result:
-        resData.append({'latitude':r.latitude,'longitude':r.longitude,'zoom':r.zoom,'program_name':program_name})
+        for r in result:
+            resData.append({'latitude':r.latitude,'longitude':r.longitude,'zoom':r.zoom,'program_name':program_name})
+    
+    except:
+        pass
 
 #commit and close all sessions
     s1.commit()
@@ -952,8 +965,19 @@ class R(BaseSupersetView):
     @has_access_api
     @expose("/shortner/", methods=["POST"])
     def shortner(self):
+        from flask import session
+        from urllib import parse
+        import json
+        import requests
         url = request.form.get("data")
-        obj = models.Url(url=url)
+        z = url
+        enc = z.split("preselect_filters=")
+        req = {"request": {"jsonObject": {"extra": json.loads(parse.unquote(enc[1]))}}}
+        r = requests.post("http://localhost:8000/api/v1/encrypt", json=req)
+        newUrl = enc[0] + "extra=" + r.json()["response"]["encrypted"]
+        print("#@@@@@@@@@@@@@@@@@@@@####",newUrl)
+        #obj = models.Url(url=url)
+        obj = models.Url(url=newUrl) #add new URL with encrypted params
         db.session.add(obj)
         db.session.commit()
         return Response(
@@ -2408,7 +2432,9 @@ class Superset(BaseSupersetView):
         if request.args.get("json") == "true":
             return json_success(json.dumps(bootstrap_data))
 #modify dashboard data acc to user program
-        try:    
+        try:
+            from flask import session
+            import requests
             def search(list, platform):
                 for i in range(len(list)):
                     if list[i] == platform:
@@ -2421,9 +2447,20 @@ class Superset(BaseSupersetView):
             userDashboards=getData()['userDashboards']
             isProgramAdmin = search(roles,'Program Admin')
             isOwnerofDashbord = search(userDashboards,bootstrap_data['dashboard_data']['id'])
-            print("**************************************",roles,isProgramAdmin,userDashboards,isOwnerofDashbord)
+            
+            print("**************************************",request.headers.get("Referer"))
             if isOwnerofDashbord is False and isProgramAdmin is True:
                 return "UNAUTHORIZED"
+            
+            if g.user.is_anonymous:
+                try:
+                    print("####################################### ANONYMOUS ")
+                    req = {"request": {"cipherText":parse.unquote(parse.quote_plus(request.args.get('extra')))}}
+                    s = requests.post("http://localhost:8000/api/v1/decrypt", json=req)
+                    print(s.json()["response"]["decryptedObject"]["extra"])
+                    bootstrap_data['dashboard_data']['metadata']['default_filters'] = json.dumps(s.json()["response"]["decryptedObject"]["extra"])
+                except:
+                    print("##################### ERROR WHILE DECODING")
             """ for data in extraData:
                 if bootstrap_data['dashboard_data']['id']==data['dashId'] and len(data['programs'])==1:
                     dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
@@ -2437,7 +2474,6 @@ class Superset(BaseSupersetView):
         except:
             print("###### GOT ERROR ###")
             pass
-
         return self.render_template(
             "superset/dashboard.html",
             entry="dashboard",

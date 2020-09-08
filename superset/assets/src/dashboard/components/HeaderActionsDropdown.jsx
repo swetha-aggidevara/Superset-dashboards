@@ -29,6 +29,7 @@ import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import getDashboardUrl from '../util/getDashboardUrl';
+import { APIURLS } from 'src/explore/constants';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -70,10 +71,24 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.state = {
       css: props.css,
       cssTemplates: [],
+      hideShare:false
     };
 
     this.changeCss = this.changeCss.bind(this);
     this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
+  }
+  componentDidMount() {
+    var requestOptions = {
+      method: 'GET',
+      redirect: 'follow'
+    };
+    fetch(APIURLS.url4, requestOptions)
+      .then(response => response.json())
+      .then((result) => {
+        const isAnonymous = result['anonymous'];
+        this.setState({hideShare:isAnonymous});
+      }
+        ).catch(error => console.log('error######', error));
   }
 
   UNSAFE_componentWillMount() {
@@ -127,6 +142,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       userCanSave,
       isLoading,
     } = this.props;
+    const {hideShare} =  this.state;
 
     const emailTitle = t('Superset Dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
@@ -197,7 +213,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           </MenuItem>
         )}
 
-        {/* <URLShortLinkModal
+        {!hideShare && <URLShortLinkModal
           url={getDashboardUrl(
             window.location.pathname,
             this.props.filters,
@@ -208,7 +224,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           addDangerToast={this.props.addDangerToast}
           isMenuItem
           triggerNode={<span>{t('Share dashboard')}</span>}
-        /> */}
+        />}
 
         {editMode && (
           <CssEditor

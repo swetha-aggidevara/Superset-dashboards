@@ -63,4 +63,5 @@ const host=window.location.protocol+"//"+ window.location.host;
 export const APIURLS = {
  url :host+'/setUtcOffset',
  url2 : host+'/getUtcOffset',
- url3:host+'/getDataForDashboard'}
+ url3:host+'/getDataForDashboard',
+ url4:host+'/getAnonymous'}

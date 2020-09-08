@@ -42,6 +42,8 @@ import { t } from '@superset-ui/translation';
 import './DateFilterControl.css';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
+import { APIURLS } from 'src/explore/constants';
+
 
 const TYPES = Object.freeze({
   DEFAULTS: 'defaults',
@@ -176,6 +178,7 @@ export default class DateFilterControl extends React.Component {
       showUntilCalendar: false,
       sinceViewMode: 'days',
       untilViewMode: 'days',
+      disableDropdown:false
     };
 
     const value = props.value;
@@ -204,6 +207,18 @@ export default class DateFilterControl extends React.Component {
 
   componentDidMount() {
     document.addEventListener('click', this.handleClick);
+
+    var requestOptions = {
+      method: 'GET',
+      redirect: 'follow'
+    };
+    fetch(APIURLS.url4, requestOptions)
+      .then(response => response.json())
+      .then((result) => {
+        const isAnonymous = result['anonymous'];
+        this.setState({disableDropdown:isAnonymous});
+      }
+        ).catch(error => console.log('error######', error));
   }
 
   componentWillUnmount() {
@@ -495,6 +510,8 @@ export default class DateFilterControl extends React.Component {
   }
   render() {
     let value = this.props.value || defaultProps.value;
+    const {disableDropdown} = this.state;
+    const styles = disableDropdown?{ pointerEvents: 'none' }: { cursor: 'pointer' }
     value = value.split(SEPARATOR).map((v, idx) => v.replace('T00:00:00', '') || (idx === 0 ? '-∞' : '∞')).join(SEPARATOR);
     return (
       <div>
@@ -509,7 +526,7 @@ export default class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
           onClick={this.handleClickTrigger}
         >
-          <Label name="popover-trigger" style={{ cursor: 'pointer' }}>{value}</Label>
+          <Label name="popover-trigger" disabled={disableDropdown} style={styles}>{value}</Label>
         </OverlayTrigger>
       </div>
     );

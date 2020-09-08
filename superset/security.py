@@ -828,14 +828,13 @@ from superset import security
 import requests
 import datetime
 
-
 class CustomAuthDBView(AuthDBView):
-
     login_template = "appbuilder/general/security/login_db.html"
     userToLogIn = None
     isValid = False
     userObj = None
     programs = None
+    token = None
 
     # function for searching an element in a list/array
     def search(self, list, text):
@@ -843,21 +842,28 @@ class CustomAuthDBView(AuthDBView):
             if text.__contains__(list[i]):
                 return True
         return False
+    
+
+    @expose("/setToken")
+    def setToken(self):
+        from superset import jinja_context
+        return {"response":'OK','data':jinja_context.BASE_CONTEXT['token']}
 
     # api to get encrypted parameters to be used for login use
     @expose("/handleLogin", methods=["GET", "POST"])
     def handleLogin(self):
+        from superset import jinja_context
         req = {
             "request": {"cipherText": json.loads(request.data)["request"]["encrypted"]}
         }
 
         # to decrypt encrypted parameters
         r = requests.post("http://localhost:8000/api/v1/decrypt", json=req)
-    
         self.userObj = r.json()["response"]["decryptedObject"]
-
         iatObj = r.json()["response"]["decryptedObject"]["iat"]
         self.programs = r.json()["response"]["decryptedObject"]["programs"]
+        self.token = r.json()["response"]["decryptedObject"]["token"]
+        jinja_context.BASE_CONTEXT['token'] = self.token
         dateFromReq = datetime.datetime(
             iatObj["year"],
             iatObj["month"] + 1,
@@ -868,7 +874,6 @@ class CustomAuthDBView(AuthDBView):
             iatObj["milis"],
         )
         currentDate = datetime.datetime.utcnow()
-        print("###@@@", "dateFromReq", dateFromReq, "currentDate", currentDate)
 
         # check validity of token and redirect url
         self.isValid = (
@@ -885,7 +890,7 @@ class CustomAuthDBView(AuthDBView):
             "encrypted": json.loads(request.data)["request"]["encrypted"],
         }
 
-    @expose("/login/", methods=["GET", "POST"])
+    @expose("/dashboards/login", methods=["GET", "POST"])
     def login(self):
         from superset import jinja_context
         redirect_url = self.appbuilder.get_url_for_index

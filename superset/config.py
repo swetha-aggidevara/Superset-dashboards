@@ -74,11 +74,15 @@ VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
 
 POSTGRE_DB_NAME=os.environ.get('posgredbname')
 SALTING_TEXT = "exacdf323"
-VALID_REFERER_URLS = [
+""" VALID_REFERER_URLS = [
     "http://localhost:4200/customlogin",
     "http://localhost:8000/customlogin",
     "https://pda.socion.io",
-]
+    "http://35.153.175.172:8000/",
+    "http://35.153.175.172:4200/"
+] """
+VALID_REFERER_URLS=os.environ.get("urls").split(",")
+print(os.environ.get("urls").split(","))
 PDA_URL = "https://pda.socion.io/"
 PDA_LOGIN_URL = "https://pda.socion.io/oauth/login"
 CUSTOM_LOGIN_ENDPOINT = "customlogin"

@@ -259,7 +259,7 @@ class BaseViz(object):
 
     def query_obj(self):
         from superset import jinja_context
-        from flask import session
+        from flask import session,g
         """Building a query object"""
         form_data = self.form_data
         self.process_query_filters()
@@ -328,12 +328,30 @@ class BaseViz(object):
         # add userId and role to jinja context 
         jinja_context.BASE_CONTEXT['userId']= session.get('userId',None)
         jinja_context.BASE_CONTEXT['role'] = session.get('role',None)
-    
-        if len(tuple(session.get('programs'))) == 0:
-            jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+
+        #for admin
+        #for program admin
+        #for anonymous g.user.is_anonymous
+
+        if session.get('role',None) == 'Admin':
+            if len(tuple(session.get('programs'))) == 0:
+                jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+            else:
+                jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
+
+        elif session.get('role',None) is not None and session.get('role',None) != 'Admin':
+            if len(tuple(session.get('programs'))) == 0:
+                jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+            else:
+                jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
+
+        elif g.user.is_anonymous == True:
+                jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+                jinja_context.BASE_CONTEXT['role'] = 'Admin'
+
         else:
-            jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
-        print("IN QUERY OBJECT******************",session)
+            pass
+        #print("IN QUERY OBJECT******************",jinja_context.BASE_CONTEXT)
         return d
 
     @property
