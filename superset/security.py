@@ -834,7 +834,9 @@ class CustomAuthDBView(AuthDBView):
     isValid = False
     userObj = None
     programs = None
+    programNames = None
     token = None
+    country = 'No Country'
 
     # function for searching an element in a list/array
     def search(self, list, text):
@@ -844,10 +846,9 @@ class CustomAuthDBView(AuthDBView):
         return False
     
 
-    @expose("/setToken")
-    def setToken(self):
-        from superset import jinja_context
-        return {"response":'OK','data':jinja_context.BASE_CONTEXT['token']}
+    @expose("/getCountry")
+    def getCountry(self):
+        return {"response":'OK',"country":session.get('country','No Country')}
 
     # api to get encrypted parameters to be used for login use
     @expose("/handleLogin", methods=["GET", "POST"])
@@ -862,8 +863,14 @@ class CustomAuthDBView(AuthDBView):
         self.userObj = r.json()["response"]["decryptedObject"]
         iatObj = r.json()["response"]["decryptedObject"]["iat"]
         self.programs = r.json()["response"]["decryptedObject"]["programs"]
+        self.programNames = r.json()["response"]["decryptedObject"]["programNames"]
         self.token = r.json()["response"]["decryptedObject"]["token"]
         jinja_context.BASE_CONTEXT['token'] = self.token
+
+        req2 = {"request":{"token":r.json()["response"]["decryptedObject"]["token"]}}
+        s = requests.post("http://localhost:8000/api/v1/user-details", json=req2)
+        self.country = s.json()['country']
+
         dateFromReq = datetime.datetime(
             iatObj["year"],
             iatObj["month"] + 1,
@@ -898,6 +905,7 @@ class CustomAuthDBView(AuthDBView):
         role = None
         userId = None
         programs = self.programs
+        programNames = self.programNames
         dashboard = request.args.get("dashboard")
         isValidReferer = request.headers.get("Referer") is not None and self.search(
             current_app.config.get("VALID_REFERER_URLS"), request.headers.get("Referer")
@@ -928,6 +936,8 @@ class CustomAuthDBView(AuthDBView):
             session["role"] = role
             session["referer"] = request.headers.get("Referer")
             session['programs'] = programs
+            session['programNames'] = programNames
+            session['country'] = self.country
         
             return redirect(redirect_url)
         else:

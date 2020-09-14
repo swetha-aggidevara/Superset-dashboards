@@ -327,28 +327,38 @@ class BaseViz(object):
         }
         # add userId and role to jinja context 
         jinja_context.BASE_CONTEXT['userId']= session.get('userId',None)
-        jinja_context.BASE_CONTEXT['role'] = session.get('role',None)
+        jinja_context.BASE_CONTEXT['role'] = session.get('role','Guest')
 
         #for admin
         #for program admin
         #for anonymous g.user.is_anonymous
 
         if session.get('role',None) == 'Admin':
+
             if len(tuple(session.get('programs'))) == 0:
                 jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+                jinja_context.BASE_CONTEXT['program_names'] = ('-2','-1')
+                jinja_context.BASE_CONTEXT['program_names_for_guest'] = ('-2','-1')
+
             else:
                 jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
+                jinja_context.BASE_CONTEXT['program_names'] = tuple(session.get('programNames'))
+                jinja_context.BASE_CONTEXT['program_names_for_guest'] = tuple(session.get('programNames'))
 
         elif session.get('role',None) is not None and session.get('role',None) != 'Admin':
             if len(tuple(session.get('programs'))) == 0:
                 jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+                jinja_context.BASE_CONTEXT['program_names'] = ('-2','-1')
+
             else:
                 jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
+                jinja_context.BASE_CONTEXT['program_names'] = tuple(session.get('programNames'))
 
         elif g.user.is_anonymous == True:
                 jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
-                jinja_context.BASE_CONTEXT['role'] = 'Admin'
-
+                jinja_context.BASE_CONTEXT['program_names'] = ('-2','-1')
+                jinja_context.BASE_CONTEXT['role'] = 'Guest'
+                
         else:
             pass
         #print("IN QUERY OBJECT******************",jinja_context.BASE_CONTEXT)
