@@ -178,7 +178,7 @@ export default class DateFilterControl extends React.Component {
       showUntilCalendar: false,
       sinceViewMode: 'days',
       untilViewMode: 'days',
-      disableDropdown:false
+      disableDropdown:true
     };
 
     const value = props.value;
@@ -215,10 +215,13 @@ export default class DateFilterControl extends React.Component {
     fetch(APIURLS.url4, requestOptions)
       .then(response => response.json())
       .then((result) => {
-        const isAnonymous = result['anonymous'];
+        const isAnonymous = result['anonymous']?true:false;
         this.setState({disableDropdown:isAnonymous});
       }
-        ).catch(error => console.log('error######', error));
+        ).catch((error) =>{
+           console.log('error######', error)
+           this.setState({disableDropdown:false});
+          });
   }
 
   componentWillUnmount() {

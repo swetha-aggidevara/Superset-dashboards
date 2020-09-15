@@ -93,7 +93,7 @@ class FilterBox extends React.Component {
       selectedValues: props.origSelectedValues,
       // this flag is used by non-instant filter, to make the apply button enabled/disabled
       hasChanged: false,
-      disableDropdown:false
+      disableDropdown:true
     };
     this.changeFilter = this.changeFilter.bind(this);
     this.onFilterMenuOpen = this.onFilterMenuOpen.bind(this, props.chartId);
@@ -110,10 +110,13 @@ class FilterBox extends React.Component {
     fetch(APIURLS.url4, requestOptions)
       .then(response => response.json())
       .then((result) => {
-        const isAnonymous = result['anonymous'];
+        const isAnonymous = result['anonymous']?true:false;
         this.setState({disableDropdown:isAnonymous});
       }
-        ).catch(error => console.log('error######', error));
+        ).catch((error) => {
+          this.setState({disableDropdown:false});
+          console.log('error######', error)
+      });
   }
   onFilterMenuOpen(chartId, column) {
     this.props.onFilterMenuOpen(chartId, column);

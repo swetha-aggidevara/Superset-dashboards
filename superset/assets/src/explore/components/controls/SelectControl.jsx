@@ -78,7 +78,7 @@ const defaultProps = {
 export default class SelectControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { options: this.getOptions(props) ,disableDropdown:false};
+    this.state = { options: this.getOptions(props) ,disableDropdown:true};
     this.onChange = this.onChange.bind(this);
     this.createMetaSelectAllOption = this.createMetaSelectAllOption.bind(this);
   }
@@ -91,10 +91,13 @@ export default class SelectControl extends React.PureComponent {
     fetch(APIURLS.url4, requestOptions)
       .then(response => response.json())
       .then((result) => {
-        const isAnonymous = result['anonymous'];
+        const isAnonymous = result['anonymous']?true:false;
         this.setState({disableDropdown:isAnonymous});
       }
-        ).catch(error => console.log('error######', error));
+        ).catch((error) =>{
+          this.setState({disableDropdown:false});
+           console.log('error######', error);
+        });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {

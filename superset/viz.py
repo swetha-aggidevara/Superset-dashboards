@@ -346,13 +346,16 @@ class BaseViz(object):
                 jinja_context.BASE_CONTEXT['program_names_for_guest'] = tuple(session.get('programNames'))
 
         elif session.get('role',None) is not None and session.get('role',None) != 'Admin':
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
             if len(tuple(session.get('programs'))) == 0:
                 jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
                 jinja_context.BASE_CONTEXT['program_names'] = ('-2','-1')
+                jinja_context.BASE_CONTEXT['program_names_for_guest'] = ('-2','-1')
 
             else:
                 jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
                 jinja_context.BASE_CONTEXT['program_names'] = tuple(session.get('programNames'))
+                jinja_context.BASE_CONTEXT['program_names_for_guest'] = ('-2','-1')
 
         elif g.user.is_anonymous == True:
                 jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
@@ -361,7 +364,7 @@ class BaseViz(object):
                 
         else:
             pass
-        #print("IN QUERY OBJECT******************",jinja_context.BASE_CONTEXT)
+        print("IN QUERY OBJECT******************")
         return d
 
     @property
