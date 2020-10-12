@@ -17,6 +17,7 @@
 # pylint: disable=C,R,W
 """A set of constants and methods to manage permissions and security"""
 import logging
+from os import isatty
 from typing import Callable, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
 from flask import current_app, g
@@ -837,6 +838,10 @@ class CustomAuthDBView(AuthDBView):
     programNames = None
     token = None
     country = 'No Country'
+    jwt_token = None
+    isAdmin = False
+    isProgramAdmin = False
+    userId = None
 
     # function for searching an element in a list/array
     def search(self, list, text):
@@ -849,6 +854,43 @@ class CustomAuthDBView(AuthDBView):
     @expose("/getCountry")
     def getCountry(self):
         return {"response":'OK',"country":session.get('country','No Country')}
+
+
+    @expose("/getToken", methods=["GET", "POST"])
+    def getToken(self): 
+        return {'res':'self.jwt_token'}
+
+    @expose("/setToken", methods=["GET", "POST"])
+    def setToken(self):
+        import jwt
+        token = json.loads(request.data)["request"]["token"]
+        decoded = jwt.decode(token,verify=False, algorithms='HS264')
+        userId = decoded['sub']
+        roles = decoded['realm_access']['roles']
+        programNames = None
+        userPrograms = None
+        requestObjectForPrograms = {
+            "request":{
+                "userId":userId,
+                "token":token
+            }
+        }
+        requestForPrograms = requests.post("http://localhost:8000/api/v1/program/user", json=requestObjectForPrograms)
+        requestForuserDetails = requests.post("http://localhost:8000/api/v1/user-details", json=requestObjectForPrograms)
+        userDetails = requestForuserDetails.json()
+        programNames=requestForPrograms.json()['programNames']
+        userPrograms=requestForPrograms.json()['userPrograms']
+        country = userDetails["country"]
+        isAdmin = self.search(roles,'admin')
+        isProgramAdmin = self.search(roles,'admin') == False
+        self.isAdmin = isAdmin
+        self.isProgramAdmin = isProgramAdmin
+        self.userId = userId
+        self.programs = userPrograms
+        self.programNames = programNames
+        self.country = country
+        print("##############################",programNames,userPrograms,userId,roles,country)
+        return {'response':{'admin':isAdmin,'programAdmin':isProgramAdmin,'country':country,'programs':userPrograms,'programNames':programNames}}
 
     # api to get encrypted parameters to be used for login use
     @expose("/handleLogin", methods=["GET", "POST"])
@@ -899,29 +941,39 @@ class CustomAuthDBView(AuthDBView):
 
     @expose("/dashboards/login", methods=["GET", "POST"])
     def login(self):
+        print("########CALLED##########################################")
         from superset import jinja_context
         redirect_url = self.appbuilder.get_url_for_index
         sample_url = "/superset/dashboard/7/"
         role = None
-        userId = None
+        userId = self.userId
         programs = self.programs
         programNames = self.programNames
-        dashboard = request.args.get("dashboard")
+        isAdmin = self.isAdmin
+        isProgramAdmin = self.isProgramAdmin
+        dashboard = request.args.get("dashboard",None)
         isValidReferer = request.headers.get("Referer") is not None and self.search(
             current_app.config.get("VALID_REFERER_URLS"), request.headers.get("Referer")
         )
 
-        if self.isValid == True and isValidReferer == True:
+        print("#############################",isValidReferer,request.headers.get("Referer"),current_app.config.get("VALID_REFERER_URLS"))
+
+        if dashboard is not None:
+            redirect_url =  "/superset/dashboard/"+ dashboard
+
+        if isValidReferer == True:
             try:
-                resObj = self.userObj
-                role = resObj["role"]
-                userId = resObj["userId"]
+                #resObj = self.userObj
+                #role = resObj["role"]
+                #userId = resObj["userId"]
 
-                if role == "Program Admin":
+                if isProgramAdmin == True:
                     self.userToLogIn = "public_user"
+                    role = 'Program Admin'
 
-                elif role == "Admin":
+                elif isAdmin == True:
                     self.userToLogIn = "admin"
+                    role = 'Admin'
 
                 else:
                     pass
@@ -938,12 +990,13 @@ class CustomAuthDBView(AuthDBView):
             session['programs'] = programs
             session['programNames'] = programNames
             session['country'] = self.country
+            print("###########################################################",session)
         
             return redirect(redirect_url)
         else:
             flash("Unable to auto login", "warning")
-            #return 'Invalid Url'
-            return super(CustomAuthDBView, self).login()
+            return 'Invalid Url'
+            #return super(CustomAuthDBView, self).login()
             #return redirect('/')
 
     @expose("/logout/", methods=["GET", "POST"])
