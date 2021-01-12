@@ -800,7 +800,7 @@ def getData():
         userDashboards = []
         dburl=None
         dashData = []
-
+        print("#############TEST USERNAME###########",userName)
         if user_id is not None:
             user_id=int(user_id)
 
@@ -814,7 +814,7 @@ def getData():
         s1= SessionForSqlite()
 
     #for getting dbURL for postgres
-        """ dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
+        dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
         for r in dbURL:
             dburl = r.sqlalchemy_uri_decrypted
             postgre_engine=create_engine(dburl)
@@ -829,14 +829,17 @@ def getData():
 
         for value in dashData:
             resultForSlug=s1.query(Dashboard).filter(Dashboard.id==value['dashId']).first()
-            value['slug']=resultForSlug.slug
-            result = s2.query(UserProgram.chartid).filter(UserProgram.dashboard==value['dashId']).first()
-            value['chartId']=result.chartid
+            if resultForSlug is not None:
+                value['slug']=resultForSlug.slug
+                result = s2.query(UserProgram.chartid).filter(UserProgram.dashboard==value['dashId']).first()
+                value['chartId']=result.chartid
+            else:
+                pass
 
     #get userinfo
         userInfo=s1.query(User).filter(User.id==user_id).all()
         for r in userInfo:
-            username=r.username"""
+            username=r.username
 
     #get role
         for r in s1.query(assoc_user_role).filter_by(user_id=user_id).all():
@@ -849,7 +852,8 @@ def getData():
 
     #get additional data on basis of userinfo
 
-        """ result = s2.query(UserProgram).filter(UserProgram.username==userName).all()
+        #jinja_context.BASE_CONTEXT['username']=username 
+        result = s2.query(UserProgram).filter(UserProgram.username==userName).all()
         resData = []
 
         for r in result:
@@ -875,16 +879,17 @@ def getData():
             for r in res123:
                 newArr.append(r.program_name)
             value['programs']=newArr
- """
+ 
     #commit and close all sessions
         s1.commit()
         s1.close()
-        #s2.commit()
-        #s2.close()
-        #return {"data":resData,"extra":dashData,"role":userRole,"userDashboards":userDashboards}
-        return {"userDashboards":userDashboards,"role":userRole}
+        s2.commit()
+        s2.close()
+        return {"data":resData,"extra":dashData,"role":userRole,"userDashboards":userDashboards}
+        #return {"userDashboards":userDashboards,"role":userRole}
 
     except:
+        print("IN ERROR")
         return{"data":[],"extra":[],"error":"True"}
 
 
@@ -2441,8 +2446,8 @@ class Superset(BaseSupersetView):
                         return True
                 return False
 
-            #resData = getData()['data']
-            #extraData = getData()['extra']
+            resData = getData()['data']
+            extraData = getData()['extra']
             roles = getData()['role']
             userDashboards=getData()['userDashboards']
             isProgramAdmin = search(roles,'Program Admin')
@@ -2461,7 +2466,7 @@ class Superset(BaseSupersetView):
                     bootstrap_data['dashboard_data']['metadata']['default_filters'] = json.dumps(s.json()["response"]["decryptedObject"]["extra"])
                 except:
                     print("##################### ERROR WHILE DECODING")
-            """ for data in extraData:
+            for data in extraData:
                 if bootstrap_data['dashboard_data']['id']==data['dashId'] and len(data['programs'])==1:
                     dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
                     x=json.loads(dfilters)
@@ -2469,7 +2474,7 @@ class Superset(BaseSupersetView):
                     bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
                 
                 else:
-                    pass """
+                    pass
 
         except:
             print("###### GOT ERROR ###")

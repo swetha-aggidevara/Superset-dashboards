@@ -127,7 +127,7 @@ class ChartHolder extends React.Component {
     let matchedSlugs;
     let chartIDs;
 
-/* try{
+try{
   sessionData = JSON.parse(localStorage.getItem('dashData'));
 }catch{
 
@@ -193,7 +193,7 @@ else{
   }).catch()
 
 
-} */
+}
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -255,14 +255,14 @@ else{
       isComponentVisible,
     } = this.props;
 
-    /* 
+ 
     if(!canRender){
 return null;
     }
 
     if( chartIds.indexOf(component.meta.chartId) > -1 && hideFilter){
       return null;
-        } */
+        }
 
     // inherit the size of parent columns
     const widthMultiple =

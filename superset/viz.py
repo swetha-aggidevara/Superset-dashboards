@@ -328,6 +328,7 @@ class BaseViz(object):
         # add userId and role to jinja context 
         jinja_context.BASE_CONTEXT['userId']= session.get('userId',None)
         jinja_context.BASE_CONTEXT['role'] = session.get('role','Guest')
+        jinja_context.BASE_CONTEXT['username'] = session.get('user_name_superset')
 
         #for admin
         #for program admin

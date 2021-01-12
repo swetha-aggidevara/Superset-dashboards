@@ -19,6 +19,7 @@
 import logging
 from os import isatty
 from typing import Callable, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+import urllib
 
 from flask import current_app, g
 from flask_appbuilder import Model
@@ -32,8 +33,11 @@ from flask_appbuilder.security.views import (
 )
 from flask_appbuilder.widgets import ListWidget
 from sqlalchemy import or_
+from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.orm.session import sessionmaker
+from flask_appbuilder.security.sqla.models import User
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -982,6 +986,10 @@ class CustomAuthDBView(AuthDBView):
                 pass
 
             user = self.appbuilder.sm.find_user(username=self.userToLogIn)
+            if user is None:
+                return {"error":"please retry login"}
+            else:
+                pass
             login_user(user, remember=False)
             #add additional information in session
             session["userId"] = userId
@@ -990,21 +998,42 @@ class CustomAuthDBView(AuthDBView):
             session['programs'] = programs
             session['programNames'] = programNames
             session['country'] = self.country
-            print("###########################################################",session)
+
+# get superset username by id and store it in session
+            user_id=session.get('user_id',None)
+            user_name_superset=None
+            if user_id is not None:
+                user_id=int(user_id)
+            #for getting dbURL for SQLITE
+            sqlite_engine=create_engine(current_app.config.get("SQLALCHEMY_DATABASE_URI"))
+            #create session for querying sqlite db
+            SessionForSqlite = sessionmaker(bind=sqlite_engine)
+            s1= SessionForSqlite()
+            #get userinfo
+            #user_name_superset
+            userInfo=s1.query(User).filter(User.id==user_id).all()
+            for r in userInfo:
+                user_name_superset=r.username
+            session['user_name_superset']=user_name_superset
+            session['userName']=user_name_superset
+
+            s1.commit()
+            s1.close()
+            print("###########################################################",session.get('user_name_superset'))
         
             return redirect(redirect_url)
         else:
             flash("Unable to auto login", "warning")
-            return 'Invalid Url'
-            #return super(CustomAuthDBView, self).login()
+            #return 'Invalid Url'
+            return super(CustomAuthDBView, self).login()
             #return redirect('/')
 
     @expose("/logout/", methods=["GET", "POST"])
     def logout(self):
+        import urllib
         logout_url: str = "/"
         pdaUrl = current_app.config.get('PDA_URL') 
         pdaLoginPageUrl = current_app.config.get('PDA_LOGIN_URL')
-        customLoginEndPoint = current_app.config.get('CUSTOM_LOGIN_ENDPOINT')
       
         if session.get("referer", None) is not None and session.get(
             "referer"
@@ -1012,11 +1041,11 @@ class CustomAuthDBView(AuthDBView):
             # logout url is pda login page
             logout_url = pdaLoginPageUrl
 
-        elif session.get("referer", None) is not None and session.get(
-            "referer"
-        ).__contains__(customLoginEndPoint):
-            logout_url = session.get("referer").replace("customlogin", "logout")
-
+        elif session.get("referer", None) is not None and urllib.parse.urlparse(session.get("referer")).port is not None:
+            scheme=urllib.parse.urlparse(session.get("referer")).scheme
+            hostname=urllib.parse.urlparse(session.get("referer")).hostname
+            port=urllib.parse.urlparse(session.get("referer")).port
+            logout_url=scheme+'://'+hostname+':'+str(port)+'/'+'logout'
         else:
             pass
 
