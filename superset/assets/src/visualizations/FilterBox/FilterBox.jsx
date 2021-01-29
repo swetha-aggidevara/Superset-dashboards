@@ -107,16 +107,16 @@ class FilterBox extends React.Component {
       method: 'GET',
       redirect: 'follow'
     };
-    fetch(APIURLS.url4, requestOptions)
-      .then(response => response.json())
-      .then((result) => {
-        const isAnonymous = result['anonymous']?true:false;
-        this.setState({disableDropdown:isAnonymous});
-      }
-        ).catch((error) => {
-          this.setState({disableDropdown:false});
-          console.log('error######', error)
-      });
+    // fetch(APIURLS.url4, requestOptions)
+    //   .then(response => response.json())
+    //   .then((result) => {
+    //     const isAnonymous = result['anonymous']?true:false;
+    //     this.setState({disableDropdown:isAnonymous});
+    //   }
+    //     ).catch((error) => {
+    //       this.setState({disableDropdown:false});
+    //       console.log('error######', error)
+    //   });
   }
   onFilterMenuOpen(chartId, column) {
     this.props.onFilterMenuOpen(chartId, column);
@@ -282,7 +282,7 @@ class FilterBox extends React.Component {
         multi={filterConfig.multiple}
         clearable={filterConfig.clearable}
         value={value}
-        disabled={disableDropdown}
+        // disabled={disableDropdown}
         options={data.map((opt) => {
           const perc = Math.round((opt.metric / max) * 100);
           const backgroundImage = (

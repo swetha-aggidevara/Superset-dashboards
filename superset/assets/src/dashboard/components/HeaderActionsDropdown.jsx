@@ -82,13 +82,13 @@ class HeaderActionsDropdown extends React.PureComponent {
       method: 'GET',
       redirect: 'follow'
     };
-    fetch(APIURLS.url4, requestOptions)
-      .then(response => response.json())
-      .then((result) => {
-        const isAnonymous = result['anonymous'];
-        this.setState({hideShare:isAnonymous});
-      }
-        ).catch(error => console.log('error######', error));
+    // fetch(APIURLS.url4, requestOptions)
+    //   .then(response => response.json())
+    //   .then((result) => {
+    //     const isAnonymous = result['anonymous'];
+    //     this.setState({hideShare:isAnonymous});
+    //   }
+    //     ).catch(error => console.log('error######', error));
   }
 
   UNSAFE_componentWillMount() {
@@ -213,7 +213,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           </MenuItem>
         )}
 
-        {!hideShare && <URLShortLinkModal
+        {/*!hideShare && <URLShortLinkModal
           url={getDashboardUrl(
             window.location.pathname,
             this.props.filters,
@@ -224,7 +224,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           addDangerToast={this.props.addDangerToast}
           isMenuItem
           triggerNode={<span>{t('Share dashboard')}</span>}
-        />}
+        />*/} 
 
         {editMode && (
           <CssEditor

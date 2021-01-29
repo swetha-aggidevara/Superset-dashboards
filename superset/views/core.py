@@ -814,32 +814,32 @@ def getData():
         s1= SessionForSqlite()
 
     #for getting dbURL for postgres
-        dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
-        for r in dbURL:
-            dburl = r.sqlalchemy_uri_decrypted
-            postgre_engine=create_engine(dburl)
+        # dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
+        # for r in dbURL:
+        #     dburl = r.sqlalchemy_uri_decrypted
+        #     postgre_engine=create_engine(dburl)
 
     #create session for querying postgre db
-        SessionForPostgre = sessionmaker(bind=postgre_engine)
-        s2 = SessionForPostgre()
+        # SessionForPostgre = sessionmaker(bind=postgre_engine)
+        # s2 = SessionForPostgre()
 
-        #get details of dashboard and corresponding chart filter
-        for value in s2.query(UserProgram.dashboard).distinct():
-            dashData.append({'dashId':value.dashboard})
+        # #get details of dashboard and corresponding chart filter
+        # for value in s2.query(UserProgram.dashboard).distinct():
+        #     dashData.append({'dashId':value.dashboard})
 
-        for value in dashData:
-            resultForSlug=s1.query(Dashboard).filter(Dashboard.id==value['dashId']).first()
-            if resultForSlug is not None:
-                value['slug']=resultForSlug.slug
-                result = s2.query(UserProgram.chartid).filter(UserProgram.dashboard==value['dashId']).first()
-                value['chartId']=result.chartid
-            else:
-                pass
+        # for value in dashData:
+        #     resultForSlug=s1.query(Dashboard).filter(Dashboard.id==value['dashId']).first()
+        #     if resultForSlug is not None:
+        #         value['slug']=resultForSlug.slug
+        #         result = s2.query(UserProgram.chartid).filter(UserProgram.dashboard==value['dashId']).first()
+        #         value['chartId']=result.chartid
+        #     else:
+        #         pass
 
     #get userinfo
-        userInfo=s1.query(User).filter(User.id==user_id).all()
-        for r in userInfo:
-            username=r.username
+        # userInfo=s1.query(User).filter(User.id==user_id).all()
+        # for r in userInfo:
+        #     username=r.username
 
     #get role
         for r in s1.query(assoc_user_role).filter_by(user_id=user_id).all():
@@ -853,40 +853,40 @@ def getData():
     #get additional data on basis of userinfo
 
         #jinja_context.BASE_CONTEXT['username']=username 
-        result = s2.query(UserProgram).filter(UserProgram.username==userName).all()
-        resData = []
+        # result = s2.query(UserProgram).filter(UserProgram.username==userName).all()
+        # resData = []
 
-        for r in result:
-            resData.append({"userId":user_id,"dashId":r.dashboard,"chartId":r.chartid,"programName":r.program_name})
+        # for r in result:
+        #     resData.append({"userId":user_id,"dashId":r.dashboard,"chartId":r.chartid,"programName":r.program_name})
 
-        if len(resData)> 0:
-            for data in resData:
+        # if len(resData)> 0:
+        #     for data in resData:
 
-                resultForSlug=s1.query(Dashboard).filter(Dashboard.id==data['dashId']).all()
-                for res in resultForSlug:
-                    data['dashSlug'] = res.slug
+        #         resultForSlug=s1.query(Dashboard).filter(Dashboard.id==data['dashId']).all()
+        #         for res in resultForSlug:
+        #             data['dashSlug'] = res.slug
 
-                resultForLocation = s2.query(Programlocation).filter(Programlocation.program_name==data['programName']).all()
-                for r in resultForLocation:
-                    obj = {'latitude':r.latitude,'longitude':r.longitude,'zoom':r.zoom}
-                    data['extra'] = obj
+        #         resultForLocation = s2.query(Programlocation).filter(Programlocation.program_name==data['programName']).all()
+        #         for r in resultForLocation:
+        #             obj = {'latitude':r.latitude,'longitude':r.longitude,'zoom':r.zoom}
+        #             data['extra'] = obj
 
 
         #for assigning program names to dashboardids
-        for value in dashData:
-            newArr = []
-            res123=s2.query(UserProgram).filter(UserProgram.dashboard==value['dashId'],UserProgram.username==userName).all()
-            for r in res123:
-                newArr.append(r.program_name)
-            value['programs']=newArr
+        # for value in dashData:
+        #     newArr = []
+        #     res123=s2.query(UserProgram).filter(UserProgram.dashboard==value['dashId'],UserProgram.username==userName).all()
+        #     for r in res123:
+        #         newArr.append(r.program_name)
+        #     value['programs']=newArr
  
     #commit and close all sessions
         s1.commit()
         s1.close()
-        s2.commit()
-        s2.close()
-        return {"data":resData,"extra":dashData,"role":userRole,"userDashboards":userDashboards}
-        #return {"userDashboards":userDashboards,"role":userRole}
+        #s2.commit()
+        #s2.close()
+        #return {"data":resData,"extra":dashData,"role":userRole,"userDashboards":userDashboards}
+        return {"userDashboards":userDashboards,"role":userRole}
 
     except:
         print("IN ERROR")
@@ -2446,8 +2446,8 @@ class Superset(BaseSupersetView):
                         return True
                 return False
 
-            resData = getData()['data']
-            extraData = getData()['extra']
+            #resData = getData()['data']
+            #extraData = getData()['extra']
             roles = getData()['role']
             userDashboards=getData()['userDashboards']
             isProgramAdmin = search(roles,'Program Admin')

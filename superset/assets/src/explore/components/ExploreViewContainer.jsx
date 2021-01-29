@@ -105,9 +105,9 @@ class ExploreViewContainer extends React.Component {
     let url3 =  APIURLS.url3;
 
 
-fetch(url3, { method: "GET" })
-.then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
-}) 
+// fetch(url3, { method: "GET" })
+// .then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
+// }) 
 
     fetch(url, { method: 'POST', body: JSON.stringify({ tz }) })
       .then((response) => response.json())
@@ -172,9 +172,9 @@ fetch(url3, { method: "GET" })
     let url3 =  APIURLS.url3;
 
 
-     fetch(url3, { method: "GET" })
-.then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
-})
+//      fetch(url3, { method: "GET" })
+// .then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
+// })
  
     fetch(url, { method: 'POST', body: JSON.stringify({ tz }) })
       .then((response) => response.json())

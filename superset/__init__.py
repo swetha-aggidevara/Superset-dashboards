@@ -170,7 +170,7 @@ for middleware in app.config["ADDITIONAL_MIDDLEWARE"]:
 
 
 class MyIndexView(IndexView):
-    @expose("/")
+    @expose("/dashboards")
     def index(self):
         return redirect("/superset/welcome")
 

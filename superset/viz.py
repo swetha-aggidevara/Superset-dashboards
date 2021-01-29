@@ -327,14 +327,21 @@ class BaseViz(object):
         }
         # add userId and role to jinja context 
         jinja_context.BASE_CONTEXT['userId']= session.get('userId',None)
-        jinja_context.BASE_CONTEXT['role'] = session.get('role','Guest')
+        #jinja_context.BASE_CONTEXT['role'] = session.get('role','Guest')
         jinja_context.BASE_CONTEXT['username'] = session.get('user_name_superset')
 
         #for admin
         #for program admin
         #for anonymous g.user.is_anonymous
+        if session.get('programs',None) is None or len(tuple(session.get('programs'))) == 0:
+            jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+            jinja_context.BASE_CONTEXT['program_names'] = ('-2','-1')
 
-        if session.get('role',None) == 'Admin':
+        else:
+            jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
+            jinja_context.BASE_CONTEXT['program_names'] = tuple(session.get('programNames'))
+
+        """if session.get('role',None) == 'Admin':
 
             if len(tuple(session.get('programs'))) == 0:
                 jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
@@ -364,7 +371,7 @@ class BaseViz(object):
                 jinja_context.BASE_CONTEXT['role'] = 'Guest'
                 
         else:
-            pass
+            pass"""
         print("IN QUERY OBJECT******************")
         return d
 

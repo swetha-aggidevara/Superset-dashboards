@@ -879,8 +879,8 @@ class CustomAuthDBView(AuthDBView):
                 "token":token
             }
         }
-        requestForPrograms = requests.post("http://localhost:8000/api/v1/program/user", json=requestObjectForPrograms)
-        requestForuserDetails = requests.post("http://localhost:8000/api/v1/user-details", json=requestObjectForPrograms)
+        requestForPrograms = requests.post("http://localhost:8095/customv1/api/v1/program/user", json=requestObjectForPrograms)
+        requestForuserDetails = requests.post("http://localhost:8095/customv1/api/v1/user-details", json=requestObjectForPrograms)
         userDetails = requestForuserDetails.json()
         programNames=requestForPrograms.json()['programNames']
         userPrograms=requestForPrograms.json()['userPrograms']
@@ -905,7 +905,7 @@ class CustomAuthDBView(AuthDBView):
         }
 
         # to decrypt encrypted parameters
-        r = requests.post("http://localhost:8000/api/v1/decrypt", json=req)
+        r = requests.post("http://localhost:8095/customv1/api/v1/decrypt", json=req)
         self.userObj = r.json()["response"]["decryptedObject"]
         iatObj = r.json()["response"]["decryptedObject"]["iat"]
         self.programs = r.json()["response"]["decryptedObject"]["programs"]
@@ -914,7 +914,7 @@ class CustomAuthDBView(AuthDBView):
         jinja_context.BASE_CONTEXT['token'] = self.token
 
         req2 = {"request":{"token":r.json()["response"]["decryptedObject"]["token"]}}
-        s = requests.post("http://localhost:8000/api/v1/user-details", json=req2)
+        s = requests.post("http://localhost:8095/customv1/api/v1/user-details", json=req2)
         self.country = s.json()['country']
 
         dateFromReq = datetime.datetime(
@@ -959,19 +959,26 @@ class CustomAuthDBView(AuthDBView):
         isValidReferer = request.headers.get("Referer") is not None and self.search(
             current_app.config.get("VALID_REFERER_URLS"), request.headers.get("Referer")
         )
+        if programs is not None and len(programs) ==1 and len(programNames) == 1:
+            programs.append(programs[0])
+            programNames.append(programNames[0])
 
-        print("#############################",isValidReferer,request.headers.get("Referer"),current_app.config.get("VALID_REFERER_URLS"))
+        else:
+            pass
+
+        print("#############################"," contains /dashboard/login-> ",request.headers.get("Referer")," IsvalidReferer->",isValidReferer," REferer->",request.headers.get("Referer")," Valid referers->",current_app.config.get("VALID_REFERER_URLS"))
 
         if dashboard is not None:
             redirect_url =  "/superset/dashboard/"+ dashboard
 
-        if isValidReferer == True:
+        if isValidReferer == True and request.headers.get("Referer") is not None and request.headers.get("Referer").__contains__('/dashboards/login') == False:
             try:
                 #resObj = self.userObj
                 #role = resObj["role"]
                 #userId = resObj["userId"]
+                self.userToLogIn = "public_user"
 
-                if isProgramAdmin == True:
+                """if isProgramAdmin == True:
                     self.userToLogIn = "public_user"
                     role = 'Program Admin'
 
@@ -980,7 +987,7 @@ class CustomAuthDBView(AuthDBView):
                     role = 'Admin'
 
                 else:
-                    pass
+                    pass"""
 
             except:
                 pass
@@ -992,8 +999,8 @@ class CustomAuthDBView(AuthDBView):
                 pass
             login_user(user, remember=False)
             #add additional information in session
-            session["userId"] = userId
-            session["role"] = role
+            #session["userId"] = userId
+            #session["role"] = role
             session["referer"] = request.headers.get("Referer")
             session['programs'] = programs
             session['programNames'] = programNames
@@ -1031,7 +1038,7 @@ class CustomAuthDBView(AuthDBView):
     @expose("/logout/", methods=["GET", "POST"])
     def logout(self):
         import urllib
-        logout_url: str = "/"
+        logout_url: str = "/dashboards"
         pdaUrl = current_app.config.get('PDA_URL') 
         pdaLoginPageUrl = current_app.config.get('PDA_LOGIN_URL')
       
@@ -1039,19 +1046,23 @@ class CustomAuthDBView(AuthDBView):
             "referer"
         ).__contains__(pdaUrl):
             # logout url is pda login page
-            logout_url = pdaLoginPageUrl
+            scheme=urllib.parse.urlparse(session.get("referer")).scheme
+            netloc=urllib.parse.urlparse(session.get("referer")).netloc
+            logout_url=scheme+'://'+ netloc +'/'+'customv1/customlogout'
 
         elif session.get("referer", None) is not None and urllib.parse.urlparse(session.get("referer")).port is not None:
             scheme=urllib.parse.urlparse(session.get("referer")).scheme
-            hostname=urllib.parse.urlparse(session.get("referer")).hostname
-            port=urllib.parse.urlparse(session.get("referer")).port
-            logout_url=scheme+'://'+hostname+':'+str(port)+'/'+'logout'
+            netloc=urllib.parse.urlparse(session.get("referer")).netloc
+            logout_url=scheme+'://'+ netloc +'/'+'customv1/customlogout'
         else:
             pass
+        print("########LOGOUT URL### ",logout_url)
 
         # return redirect("/")
         session.pop('referer',None)
         session.pop('userName',None)
+        session.pop('programs',None)
+        session.pop('programNames',None)
         logout_user()
 
         return redirect(logout_url)

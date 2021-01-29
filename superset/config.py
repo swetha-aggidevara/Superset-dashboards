@@ -209,7 +209,7 @@ AUTH_TYPE = AUTH_DB
 # Grant public role the same set of permissions as for the GAMMA role.
 # This is useful if one wants to enable anonymous users to view
 # dashboards. Explicit grant on specific datasets is still required.
-PUBLIC_ROLE_LIKE_GAMMA = True
+PUBLIC_ROLE_LIKE_GAMMA = False
 
 # ---------------------------------------------------
 # Babel config for translations

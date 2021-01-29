@@ -88,16 +88,16 @@ export default class SelectControl extends React.PureComponent {
       method: 'GET',
       redirect: 'follow'
     };
-    fetch(APIURLS.url4, requestOptions)
-      .then(response => response.json())
-      .then((result) => {
-        const isAnonymous = result['anonymous']?true:false;
-        this.setState({disableDropdown:isAnonymous});
-      }
-        ).catch((error) =>{
-          this.setState({disableDropdown:false});
-           console.log('error######', error);
-        });
+    // fetch(APIURLS.url4, requestOptions)
+    //   .then(response => response.json())
+    //   .then((result) => {
+    //     const isAnonymous = result['anonymous']?true:false;
+    //     this.setState({disableDropdown:isAnonymous});
+    //   }
+    //     ).catch((error) =>{
+    //       this.setState({disableDropdown:false});
+    //        console.log('error######', error);
+    //     });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -192,7 +192,7 @@ export default class SelectControl extends React.PureComponent {
 
   render() {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
-    const {disableDropdown} = this.state;
+  //  const {disableDropdown} = this.state;
     const placeholder = this.props.placeholder || t('%s option(s)', this.state.options.length);
     const selectProps = {
       multi: this.props.multi,
@@ -214,7 +214,7 @@ export default class SelectControl extends React.PureComponent {
       refFunc: this.props.refFunc,
       filterOption: this.props.filterOption,
       promptTextCreator: this.props.promptTextCreator,
-      disabled:disableDropdown
+     // disabled:disableDropdown
     };
     if (this.props.freeForm) {
       selectProps.selectComponent = Creatable;
