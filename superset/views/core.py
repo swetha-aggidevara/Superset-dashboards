@@ -2457,24 +2457,24 @@ class Superset(BaseSupersetView):
             if isOwnerofDashbord is False and isProgramAdmin is True:
                 return "UNAUTHORIZED"
             
-            if g.user.is_anonymous:
-                try:
-                    print("####################################### ANONYMOUS ")
-                    req = {"request": {"cipherText":parse.unquote(parse.quote_plus(request.args.get('extra')))}}
-                    s = requests.post("http://localhost:8000/api/v1/decrypt", json=req)
-                    print(s.json()["response"]["decryptedObject"]["extra"])
-                    bootstrap_data['dashboard_data']['metadata']['default_filters'] = json.dumps(s.json()["response"]["decryptedObject"]["extra"])
-                except:
-                    print("##################### ERROR WHILE DECODING")
-            for data in extraData:
-                if bootstrap_data['dashboard_data']['id']==data['dashId'] and len(data['programs'])==1:
-                    dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
-                    x=json.loads(dfilters)
-                    x[data['chartId']]={'program_name':  [data['programs'][0]]  } #program should be passed as an array
-                    bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
+            # if g.user.is_anonymous:
+            #     try:
+            #         print("####################################### ANONYMOUS ")
+            #         req = {"request": {"cipherText":parse.unquote(parse.quote_plus(request.args.get('extra')))}}
+            #         s = requests.post("http://localhost:8000/api/v1/decrypt", json=req)
+            #         print(s.json()["response"]["decryptedObject"]["extra"])
+            #         bootstrap_data['dashboard_data']['metadata']['default_filters'] = json.dumps(s.json()["response"]["decryptedObject"]["extra"])
+            #     except:
+            #         print("##################### ERROR WHILE DECODING")
+            # for data in extraData:
+            #     if bootstrap_data['dashboard_data']['id']==data['dashId'] and len(data['programs'])==1:
+            #         dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
+            #         x=json.loads(dfilters)
+            #         x[data['chartId']]={'program_name':  [data['programs'][0]]  } #program should be passed as an array
+            #         bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
                 
-                else:
-                    pass
+            #     else:
+            #         pass
 
         except:
             print("###### GOT ERROR ###")

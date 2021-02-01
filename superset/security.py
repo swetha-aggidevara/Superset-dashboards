@@ -879,8 +879,8 @@ class CustomAuthDBView(AuthDBView):
                 "token":token
             }
         }
-        requestForPrograms = requests.post("http://localhost:8095/customv1/api/v1/program/user", json=requestObjectForPrograms)
-        requestForuserDetails = requests.post("http://localhost:8095/customv1/api/v1/user-details", json=requestObjectForPrograms)
+        requestForPrograms = requests.post("http://localhost:8095/supersetdashboards/api/v1/program/user", json=requestObjectForPrograms)
+        requestForuserDetails = requests.post("http://localhost:8095/supersetdashboards/api/v1/user-details", json=requestObjectForPrograms)
         userDetails = requestForuserDetails.json()
         programNames=requestForPrograms.json()['programNames']
         userPrograms=requestForPrograms.json()['userPrograms']
@@ -905,7 +905,7 @@ class CustomAuthDBView(AuthDBView):
         }
 
         # to decrypt encrypted parameters
-        r = requests.post("http://localhost:8095/customv1/api/v1/decrypt", json=req)
+        r = requests.post("http://localhost:8095/supersetdashboards/api/v1/decrypt", json=req)
         self.userObj = r.json()["response"]["decryptedObject"]
         iatObj = r.json()["response"]["decryptedObject"]["iat"]
         self.programs = r.json()["response"]["decryptedObject"]["programs"]
@@ -914,7 +914,7 @@ class CustomAuthDBView(AuthDBView):
         jinja_context.BASE_CONTEXT['token'] = self.token
 
         req2 = {"request":{"token":r.json()["response"]["decryptedObject"]["token"]}}
-        s = requests.post("http://localhost:8095/customv1/api/v1/user-details", json=req2)
+        s = requests.post("http://localhost:8095/supersetdashboards/api/v1/user-details", json=req2)
         self.country = s.json()['country']
 
         dateFromReq = datetime.datetime(
@@ -943,7 +943,7 @@ class CustomAuthDBView(AuthDBView):
             "encrypted": json.loads(request.data)["request"]["encrypted"],
         }
 
-    @expose("/dashboards/login", methods=["GET", "POST"])
+    @expose("/superset/login", methods=["GET", "POST"])
     def login(self):
         print("########CALLED##########################################")
         from superset import jinja_context
@@ -971,7 +971,7 @@ class CustomAuthDBView(AuthDBView):
         if dashboard is not None:
             redirect_url =  "/superset/dashboard/"+ dashboard
 
-        if isValidReferer == True and request.headers.get("Referer") is not None and request.headers.get("Referer").__contains__('/dashboards/login') == False:
+        if isValidReferer == True and request.headers.get("Referer") is not None and request.headers.get("Referer").__contains__('/superset/login') == False:
             try:
                 #resObj = self.userObj
                 #role = resObj["role"]
@@ -1038,7 +1038,7 @@ class CustomAuthDBView(AuthDBView):
     @expose("/logout/", methods=["GET", "POST"])
     def logout(self):
         import urllib
-        logout_url: str = "/dashboards"
+        logout_url: str = "/superset"
         pdaUrl = current_app.config.get('PDA_URL') 
         pdaLoginPageUrl = current_app.config.get('PDA_LOGIN_URL')
       
@@ -1048,12 +1048,12 @@ class CustomAuthDBView(AuthDBView):
             # logout url is pda login page
             scheme=urllib.parse.urlparse(session.get("referer")).scheme
             netloc=urllib.parse.urlparse(session.get("referer")).netloc
-            logout_url=scheme+'://'+ netloc +'/'+'customv1/customlogout'
+            logout_url=scheme+'://'+ netloc +'/'+'supersetdashboards/ssologout'
 
         elif session.get("referer", None) is not None and urllib.parse.urlparse(session.get("referer")).port is not None:
             scheme=urllib.parse.urlparse(session.get("referer")).scheme
             netloc=urllib.parse.urlparse(session.get("referer")).netloc
-            logout_url=scheme+'://'+ netloc +'/'+'customv1/customlogout'
+            logout_url=scheme+'://'+ netloc +'/'+'supersetdashboards/ssologout'
         else:
             pass
         print("########LOGOUT URL### ",logout_url)
