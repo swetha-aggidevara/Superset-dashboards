@@ -966,7 +966,7 @@ class CustomAuthDBView(AuthDBView):
         else:
             pass
 
-        print("#############################"," contains /dashboard/login-> ",request.headers.get("Referer")," IsvalidReferer->",isValidReferer," REferer->",request.headers.get("Referer")," Valid referers->",current_app.config.get("VALID_REFERER_URLS"))
+        print("#############################"," contains /superset/login-> ",request.headers.get("Referer")," IsvalidReferer->",isValidReferer," REferer->",request.headers.get("Referer")," Valid referers->",current_app.config.get("VALID_REFERER_URLS"))
 
         if dashboard is not None:
             redirect_url =  "/superset/dashboard/"+ dashboard
@@ -976,7 +976,7 @@ class CustomAuthDBView(AuthDBView):
                 #resObj = self.userObj
                 #role = resObj["role"]
                 #userId = resObj["userId"]
-                self.userToLogIn = "public_user"
+                self.userToLogIn = "public_user" # check for username in instance
 
                 """if isProgramAdmin == True:
                     self.userToLogIn = "public_user"
@@ -1039,7 +1039,7 @@ class CustomAuthDBView(AuthDBView):
     def logout(self):
         import urllib
         logout_url: str = "/superset"
-        pdaUrl = current_app.config.get('PDA_URL') 
+        pdaUrl = current_app.config.get('PDA_URL') #check for host for every deployment
         pdaLoginPageUrl = current_app.config.get('PDA_LOGIN_URL')
       
         if session.get("referer", None) is not None and session.get(
@@ -1069,6 +1069,29 @@ class CustomAuthDBView(AuthDBView):
 
 
 class CustomSecurityManager(SupersetSecurityManager):
+
+    def showProfile(self):
+        import os
+        user_id=session.get('user_id',None)
+        user_name_superset=''
+        usernames=os.environ.get('usernames',"public_user,pdauser").split(",")
+        if user_id is not None:
+            user_id=int(user_id)
+        #for getting dbURL for SQLITE
+        sqlite_engine=create_engine(current_app.config.get("SQLALCHEMY_DATABASE_URI"))
+
+        SessionForSqlite = sessionmaker(bind=sqlite_engine)
+        s1= SessionForSqlite()
+   
+        userInfo=s1.query(User).filter(User.id==user_id).all()
+        for r in userInfo:
+            user_name_superset=r.username
+       
+        s1.commit()
+        s1.close()
+        
+        return not user_name_superset in usernames
+
     authdbview = CustomAuthDBView
 
     def __init__(self, appbuilder):
