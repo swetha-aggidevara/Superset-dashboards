@@ -1038,10 +1038,11 @@ class CustomAuthDBView(AuthDBView):
     @expose("/logout/", methods=["GET", "POST"])
     def logout(self):
         import urllib
-        logout_url: str = "/superset"
+        logout_url: str = "/superset/login"
+        ssologouturl = "https://reports.socion.io/supersetdashboards/ssologout"
+        pdaUrl = current_app.config.get('PDA_URL')
         logout_user()
-
-        return redirect(logout_url)
+        return redirect(ssologouturl)
         pdaUrl = current_app.config.get('PDA_URL') #check for host for every deployment
         pdaLoginPageUrl = current_app.config.get('PDA_LOGIN_URL')
       
