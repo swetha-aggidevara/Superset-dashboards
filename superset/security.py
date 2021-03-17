@@ -1039,6 +1039,9 @@ class CustomAuthDBView(AuthDBView):
     def logout(self):
         import urllib
         logout_url: str = "/superset"
+        logout_user()
+
+        return redirect(logout_url)
         pdaUrl = current_app.config.get('PDA_URL') #check for host for every deployment
         pdaLoginPageUrl = current_app.config.get('PDA_LOGIN_URL')
       
@@ -1049,6 +1052,7 @@ class CustomAuthDBView(AuthDBView):
             scheme=urllib.parse.urlparse(session.get("referer")).scheme
             netloc=urllib.parse.urlparse(session.get("referer")).netloc
             logout_url=scheme+'://'+ netloc +'/'+'supersetdashboards/ssologout'
+            print("############################################ IN IF",logout_url)
 
         elif session.get("referer", None) is not None and urllib.parse.urlparse(session.get("referer")).port is not None:
             scheme=urllib.parse.urlparse(session.get("referer")).scheme
