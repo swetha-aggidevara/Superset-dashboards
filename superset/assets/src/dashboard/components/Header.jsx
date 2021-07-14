@@ -21,7 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { CategoricalColorNamespace } from '@superset-ui/color';
 import { t } from '@superset-ui/translation';
-
+import _ from 'lodash';
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
@@ -323,6 +323,8 @@ class Header extends React.PureComponent {
     if(program_name){
       completeTitle = `${dashboardTitle} (${program_name})`;
     } */
+    const userData = JSON.parse(localStorage.getItem('dashData'));
+    const isAdmin = _.includes(_.get(userData, 'role'), 'Admin');
     return (
       <div className="dashboard-header">
         <div className="dashboard-component-header header-large">
@@ -332,7 +334,7 @@ class Header extends React.PureComponent {
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
           />
-          <span className="publish">
+          {/* <span className="publish">
             <PublishedStatus
               dashboardId={dashboardInfo.id}
               isPublished={isPublished}
@@ -348,7 +350,7 @@ class Header extends React.PureComponent {
               saveFaveStar={this.props.saveFaveStar}
               isStarred={this.props.isStarred}
             />
-          </span>
+          </span> */}
         </div>
 
         <div className="button-container">
@@ -426,7 +428,7 @@ class Header extends React.PureComponent {
             </div>
           )}
 
-          {!editMode && !hasUnsavedChanges && (
+          {!editMode && !hasUnsavedChanges && isAdmin && (
             <Button
               bsSize="small"
               onClick={this.toggleEditMode}
@@ -450,6 +452,7 @@ class Header extends React.PureComponent {
             colorScheme={colorScheme}
             onSave={onSave}
             onChange={onChange}
+            isAdmin={isAdmin}
             forceRefreshAllCharts={this.forceRefresh}
             startPeriodicRender={this.startPeriodicRender}
             refreshFrequency={refreshFrequency}

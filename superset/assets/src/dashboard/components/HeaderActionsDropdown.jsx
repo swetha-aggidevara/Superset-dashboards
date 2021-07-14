@@ -39,6 +39,7 @@ const propTypes = {
   hasUnsavedChanges: PropTypes.bool.isRequired,
   css: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
+  isAdmin:PropTypes.bool,
   colorScheme: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   updateCss: PropTypes.func.isRequired,
@@ -140,6 +141,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       onSave,
       userCanEdit,
       userCanSave,
+      isAdmin,
       isLoading,
     } = this.props;
     const {hideShare} =  this.state;
@@ -155,6 +157,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         bsStyle={hasUnsavedChanges ? 'primary' : undefined}
         bsSize="small"
         pullRight
+        className={isAdmin?"show-action":"hide-action"}
       >
         {userCanSave && (
           <SaveModal

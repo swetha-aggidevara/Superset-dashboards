@@ -26,7 +26,7 @@ import DashboardTable from './DashboardTable';
 import moment from 'moment'
 import { APIURLS } from 'src/explore/constants';
 import { SupersetClient } from '@superset-ui/connection';
-
+import _ from "lodash";
 const propTypes = {
   user: PropTypes.object.isRequired,
 };
@@ -35,7 +35,7 @@ export default class Welcome extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      canRender:false,
+      canRender: false,
       search: '',
     };
     this.onSearchChange = this.onSearchChange.bind(this);
@@ -51,48 +51,62 @@ export default class Welcome extends React.PureComponent {
       .then((data) => {
         fetch(url2, { method: 'GET' })
           .then((response) => response.json())
-          .then((data) => {})
-      }); 
+          .then((data) => { })
+      });
 
-      localStorage.removeItem('dashData')
-      fetch(url3, { method: "GET" })
+    localStorage.removeItem('dashData')
+    fetch(url3, { method: "GET" })
       .then((res) => res.json())
       .then((data) => {
-        console.log("data",data);
-        localStorage.setItem('dashData',JSON.stringify(data));
+        console.log("data", data);
+        localStorage.setItem('dashData', JSON.stringify(data));
       }).catch((err) => {
       })
-      SupersetClient.get({
-        endpoint: '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
-      })
-        .then(({ json }) => {
-          console.log("res",json.result);
+    SupersetClient.get({
+      endpoint: '/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc',
+    })
+      .then(({ json }) => {
+        console.log("res", json.result);
 
-          if(
-            json.result && json.result.length===1){
+        if (
+          json.result && json.result.length === 1) {
           window.location.href = json.result[0]['url'];
           return null;
-          }
-          else{
-            this.setState({canRender:true})
-          }
-    
-        })
-        .catch(() => {
-          this.setState({canRender:true})
-          console.log("error");
+        }
+        else {
+          this.setState({ canRender: true })
+        }
+
+      })
+      .catch(() => {
+        this.setState({ canRender: true })
+        console.log("error");
+      });
+    // Get PDA user roles and set in localstorage
+    fetch(APIURLS.url5, { method: 'GET' })
+      .then(response => response.json())
+      .then((data) => {
+        let pdaUserRoles = _.map(_.get(data, 'userRoles'), user => {
+          return _.get(user, 'roles');
         });
+        pdaUserRoles = _.flattenDeep(pdaUserRoles) || [];
+        localStorage.setItem('pda_user_program_roles', pdaUserRoles);
+      }
+      )
+      .catch(err => {
+        console.log('eerr', err);
+      })
   }
 
   onSearchChange(event) {
     this.setState({ search: event.target.value });
   }
   render() {
-    if(!this.state.canRender){
+    if (!this.state.canRender) {
       return null;
     }
-    
-      return (
+
+    return (
       <div className="container welcome">
         <Tabs defaultActiveKey={1} id="uncontrolled-tab-example">
           <Tab eventKey={1} title={t('Dashboards')}>

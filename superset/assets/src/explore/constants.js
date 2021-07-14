@@ -64,4 +64,7 @@ export const APIURLS = {
  url :host+'/setUtcOffset',
  url2 : host+'/getUtcOffset',
  url3:host+'/getDataForDashboard',
- url4:host+'/getAnonymous'}
+ url4:host+'/getAnonymous',
+ url5: host+'/superset/pdaUserDetails'
+}
+export const ADMIN_TABS_VISIBILITY = ['general', 'admin','restricted','reports'];

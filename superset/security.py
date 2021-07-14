@@ -890,6 +890,7 @@ class CustomAuthDBView(AuthDBView):
         self.isAdmin = isAdmin
         self.isProgramAdmin = isProgramAdmin
         self.userId = userId
+        self.pdaUser = requestForPrograms.json()
         self.programs = userPrograms
         self.programNames = programNames
         self.country = country
@@ -942,7 +943,15 @@ class CustomAuthDBView(AuthDBView):
             "response": "OK",
             "encrypted": json.loads(request.data)["request"]["encrypted"],
         }
-
+    
+    @expose("/superset/pdaUserDetails", methods=["GET", "POST"])
+    def pdaUserDetails(self):
+        if self.pdaUser is not None:
+            response = self.pdaUser
+        else:
+            response = {}
+        return (response)
+    
     @expose("/superset/login", methods=["GET", "POST"])
     def login(self):
         print("########CALLED##########################################")
@@ -1006,7 +1015,7 @@ class CustomAuthDBView(AuthDBView):
             session['programNames'] = programNames
             session['country'] = self.country
 
-# get superset username by id and store it in session
+ # get superset username by id and store it in session
             user_id=session.get('user_id',None)
             user_name_superset=None
             if user_id is not None:
@@ -1031,6 +1040,7 @@ class CustomAuthDBView(AuthDBView):
             return redirect(redirect_url)
         else:
             flash("Unable to auto login", "warning")
+            self.pdaUser = {}
             #return 'Invalid Url'
             return super(CustomAuthDBView, self).login()
             #return redirect('/')
@@ -1039,7 +1049,7 @@ class CustomAuthDBView(AuthDBView):
     def logout(self):
         import urllib
         logout_url: str = "/superset/login"
-        ssologouturl = "https://reports.socion.io/supersetdashboards/ssologout"
+        ssologouturl = "http://localhost:4200/supersetdashboards/ssologout"
         pdaUrl = current_app.config.get('PDA_URL')
         logout_user()
         return redirect(ssologouturl)

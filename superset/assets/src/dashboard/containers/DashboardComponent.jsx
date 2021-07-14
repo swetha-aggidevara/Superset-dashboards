@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-
+import _ from 'lodash';
 import ComponentLookup from '../components/gridComponents';
 import getDetailedComponentWidth from '../util/getDetailedComponentWidth';
 import { getActiveFilters } from '../util/activeDashboardFilters';
@@ -35,6 +35,7 @@ import {
 } from '../actions/dashboardLayout';
 import { setDirectPathToChild } from '../actions/dashboardState';
 import { logEvent } from '../../logger/actions';
+import { ADMIN_TABS_VISIBILITY } from 'src/explore/constants';
 
 const propTypes = {
   component: componentShape.isRequired,
@@ -107,10 +108,25 @@ function mapDispatchToProps(dispatch) {
 }
 
 class DashboardComponent extends React.PureComponent {
+  // render() {
+  //   const { component } = this.props;
+  //   const Component = component ? ComponentLookup[component.type] : null;
+  //   return Component ? <Component {...this.props} /> : null;
+  // }
   render() {
-    const { component } = this.props;
-    const Component = component ? ComponentLookup[component.type] : null;
-    return Component ? <Component {...this.props} /> : null;
+    const { component  } = this.props;
+    const userData = JSON.parse(localStorage.getItem('dashData'));
+    const pdaUserData = localStorage.getItem('pda_user_program_roles');
+    const isAdmin = _.includes(_.get(userData, 'role'), 'Admin');
+    const isSuperAdmin = _.includes (pdaUserData, 'SUPER_ADMIN');
+    let showTabs = true;
+    const tabName = _.get(component, 'meta.text');
+    console.log("tab names",tabName,isSuperAdmin,isAdmin)
+    if (!_.isEmpty(tabName) && _.includes(ADMIN_TABS_VISIBILITY, (tabName.toLowerCase()))) {
+      showTabs = isSuperAdmin || isAdmin;
+    }
+    const Component = (showTabs) ? component ? ComponentLookup[component.type] : null: null;
+    return  Component ? <Component {...this.props} /> : null;
   }
 }
 
