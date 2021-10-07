@@ -879,8 +879,8 @@ class CustomAuthDBView(AuthDBView):
                 "token":token
             }
         }
-        requestForPrograms = requests.post("http://localhost:8095/supersetdashboards/api/v1/program/user", json=requestObjectForPrograms)
-        requestForuserDetails = requests.post("http://localhost:8095/supersetdashboards/api/v1/user-details", json=requestObjectForPrograms)
+        requestForPrograms = requests.post("http://localhost:8000/supersetdashboards/api/v1/program/user", json=requestObjectForPrograms)
+        requestForuserDetails = requests.post("http://localhost:8000/supersetdashboards/api/v1/user-details", json=requestObjectForPrograms)
         userDetails = requestForuserDetails.json()
         programNames=requestForPrograms.json()['programNames']
         userPrograms=requestForPrograms.json()['userPrograms']
@@ -906,7 +906,7 @@ class CustomAuthDBView(AuthDBView):
         }
 
         # to decrypt encrypted parameters
-        r = requests.post("http://localhost:8095/supersetdashboards/api/v1/decrypt", json=req)
+        r = requests.post("http://localhost:8000/supersetdashboards/api/v1/decrypt", json=req)
         self.userObj = r.json()["response"]["decryptedObject"]
         iatObj = r.json()["response"]["decryptedObject"]["iat"]
         self.programs = r.json()["response"]["decryptedObject"]["programs"]
@@ -915,7 +915,7 @@ class CustomAuthDBView(AuthDBView):
         jinja_context.BASE_CONTEXT['token'] = self.token
 
         req2 = {"request":{"token":r.json()["response"]["decryptedObject"]["token"]}}
-        s = requests.post("http://localhost:8095/supersetdashboards/api/v1/user-details", json=req2)
+        s = requests.post("http://localhost:8000/supersetdashboards/api/v1/user-details", json=req2)
         self.country = s.json()['country']
 
         dateFromReq = datetime.datetime(
@@ -960,6 +960,7 @@ class CustomAuthDBView(AuthDBView):
         sample_url = "/superset/dashboard/7/"
         role = None
         userId = self.userId
+        # self.set_userId("userId", self.userId)
         programs = self.programs
         programNames = self.programNames
         isAdmin = self.isAdmin

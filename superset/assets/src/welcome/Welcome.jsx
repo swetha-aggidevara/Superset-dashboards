@@ -91,6 +91,7 @@ export default class Welcome extends React.PureComponent {
         });
         pdaUserRoles = _.flattenDeep(pdaUserRoles) || [];
         localStorage.setItem('pda_user_program_roles', pdaUserRoles);
+        localStorage.setItem('pda_program_names', _.get(data, 'programNames') || [])
       }
       )
       .catch(err => {
