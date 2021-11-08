@@ -30,6 +30,7 @@ const propTypes = {
   noPermitTooltip: PropTypes.string,
   showTooltip: PropTypes.bool,
   emptyText: PropTypes.node,
+  isNotBigNumber: PropTypes.bool,
   style: PropTypes.object,
   extraClasses: PropTypes.oneOfType([PropTypes.arrayOf(PropTypes.string), PropTypes.string]),
 };
@@ -37,6 +38,7 @@ const defaultProps = {
   title: t('Title'),
   canEdit: false,
   multiLine: false,
+  isNotBigNumber:true,
   showTooltip: true,
   onSaveTitle: () => {},
   emptyText: '<empty>',
@@ -50,6 +52,7 @@ export default class EditableTitle extends React.PureComponent {
     this.state = {
       isEditing: false,
       title: this.props.title,
+      program_name:this.props.program_name,
       lastTitle: this.props.title,
     };
     this.handleClick = this.handleClick.bind(this);
@@ -145,7 +148,7 @@ export default class EditableTitle extends React.PureComponent {
   render() {
     const { isEditing, title, contentBoundingRect } = this.state;
     const { emptyText, multiLine, showTooltip, canEdit,
-      noPermitTooltip, style, extraClasses } = this.props;
+      noPermitTooltip, style, extraClasses,isNotBigNumber } = this.props;
 
     let value;
     if (title) {
@@ -205,6 +208,7 @@ export default class EditableTitle extends React.PureComponent {
           extraClasses,
           canEdit && 'editable-title--editable',
           isEditing && 'editable-title--editing',
+          !isNotBigNumber && 'isNotBigNumber'
         )}
         style={style}
       >

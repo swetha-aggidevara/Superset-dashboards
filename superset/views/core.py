@@ -37,6 +37,7 @@ from flask import (
     request,
     Response,
     url_for,
+    session
 )
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
@@ -108,7 +109,21 @@ from .utils import (
     get_form_data,
     get_viz,
 )
+from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from .customdata import country_offset
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, Integer, String,Float,Boolean
+from sqlalchemy import ARRAY
+from sqlalchemy.ext.declarative import declarative_base
+from flask import current_app
+from flask_appbuilder.security.sqla.models import User,assoc_user_role,Role
+from superset.models.core import Database,Dashboard,dashboard_user
+from sqlalchemy.engine.url import make_url
+from binascii import hexlify,unhexlify
+from simplecrypt import encrypt, decrypt
+Base = declarative_base()
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config.get(
@@ -632,6 +647,15 @@ class DashboardAddView(DashboardModelView):
 appbuilder.add_view_no_menu(DashboardAddView)
 
 
+def getUtcZoneName(offsetArray,offset):
+    zoneName = None
+
+    for x in offsetArray:
+        if x["offset"] == offset:
+            zoneName = x['name']
+            break
+    return zoneName
+
 @talisman(force_https=False)
 @app.route("/health")
 def health():
@@ -649,6 +673,247 @@ def healthcheck():
 def ping():
     return "OK"
 
+@app.route("/setUtcOffset",methods=['POST'])
+def setUtcOffset():
+    try:
+        offset = json.loads(request.data)['tz'] # get offset value from request body ,gmt tz like +5:30,00:00
+        session['tz'] = getUtcZoneName(country_offset,offset) #returns offset country/region name acc to offset
+        offsetFromSession = session.get('tz','None') #store offsetname in session
+
+    except:
+        pass #if none leave as it is or UTC
+    return {'res':'Offset Set Ok'}
+
+@app.route("/getUtcOffset",methods=['GET','POST'])
+def getUtcOffset():
+
+    time_grain_functions = {
+        None: "{col}",
+        "PT1S": "DATE_TRUNC('second', {col})",
+        "PT1M": "DATE_TRUNC('minute', {col})",
+        "PT1H": "DATE_TRUNC('hour', {col})",
+        "P1D": "DATE_TRUNC('day', {col})",
+        "P1W": "DATE_TRUNC('week', {col})",
+        "P1M": "DATE_TRUNC('month', {col})",
+        "P0.25Y": "DATE_TRUNC('quarter', {col})",
+        "P1Y": "DATE_TRUNC('year', {col})",
+    }
+    try:
+        offsetFromSession = session.get('tz','None')
+
+        if offsetFromSession is not 'None':
+            time_grain_functions = {
+            None: "{col}",
+            "PT1S": "DATE_TRUNC('second', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "PT1M": "DATE_TRUNC('minute', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "PT1H": "DATE_TRUNC('hour', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P1D": "DATE_TRUNC('day', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P1W": "DATE_TRUNC('week', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P1M": "DATE_TRUNC('month', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P0.25Y": "DATE_TRUNC('quarter', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            "P1Y": "DATE_TRUNC('year', {col} at time zone 'UTC' at time zone " +"'"+offsetFromSession +"'"+")",
+            }
+    except:
+        pass
+    PostgresBaseEngineSpec._time_grain_functions = time_grain_functions
+    return {'res':offsetFromSession}
+
+
+@app.route("/getAnonymous",methods=['GET'])
+def getAnonymous():
+    if g.user.is_anonymous:
+        return {"response":"Ok","anonymous":True}
+    else:
+        return {"response":"Ok","anonymous":False}
+
+    return {'res':'Offset Set Ok'}
+class UserProgram(Base):
+    __tablename__='userprogram'
+    __table_args__ = {'extend_existing': True} 
+    program_id=Column(Integer)
+    dashboard=Column(Integer)
+    chartid=Column(Integer)
+    sequence=Column(Integer,primary_key=True)
+    username=Column(String)
+    program_name=Column(String)
+
+class Programlocation(Base):
+    __tablename__='program_metadata'
+    __table_args__ = {'extend_existing': True} 
+    program_id=Column(Integer,primary_key=True)
+    latitude=Column(Float)
+    longitude=Column(Float)
+    zoom=Column(Integer)
+    program_name=Column(String)
+
+
+def getDataForProgram(program_name):
+    program_name=program_name
+
+    postgre_engine = None
+
+    resData = []
+
+    #for getting dbURL for SQLITE
+    sqlite_engine=create_engine(current_app.config.get("SQLALCHEMY_DATABASE_URI"))
+
+#create session for querying sqlite db
+    SessionForSqlite = sessionmaker(bind=sqlite_engine)
+    s1= SessionForSqlite()
+
+#for getting dbURL for postgres
+    dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
+    for r in dbURL:
+        dburl = r.sqlalchemy_uri_decrypted
+        postgre_engine=create_engine(dburl)
+
+#create session for querying postgre db
+    SessionForPostgre = sessionmaker(bind=postgre_engine)
+    s2 = SessionForPostgre()
+
+    try:
+        result=s2.query(Programlocation).filter(Programlocation.program_name==program_name).all()
+
+        for r in result:
+            resData.append({'latitude':r.latitude,'longitude':r.longitude,'zoom':r.zoom,'program_name':program_name})
+    
+    except:
+        pass
+
+#commit and close all sessions
+    s1.commit()
+    s1.close()
+    s2.commit()
+    s2.close()
+
+    return {'data':resData}
+from flask import request
+from superset import jinja_context
+def getData():
+    try:
+
+        username=None
+        user_id=session.get('user_id',None)
+        userName = session.get('userName',None)  # userName stored in session which is passe dusing post request and login by params
+        userId = session.get('userId',None) # userID stored in session which is passe dusing post request and login by params
+        userRole=[]
+        userDashboards = []
+        dburl=None
+        dashData = []
+        print("#############TEST USERNAME###########",userName)
+        if user_id is not None:
+            user_id=int(user_id)
+
+        postgre_engine = None
+
+        #for getting dbURL for SQLITE
+        sqlite_engine=create_engine(current_app.config.get("SQLALCHEMY_DATABASE_URI"))
+
+    #create session for querying sqlite db
+        SessionForSqlite = sessionmaker(bind=sqlite_engine)
+        s1= SessionForSqlite()
+
+    #for getting dbURL for postgres
+        # dbURL = s1.query(Database).filter(Database.database_name==current_app.config.get("POSTGRE_DB_NAME")).all()
+        # for r in dbURL:
+        #     dburl = r.sqlalchemy_uri_decrypted
+        #     postgre_engine=create_engine(dburl)
+
+    #create session for querying postgre db
+        # SessionForPostgre = sessionmaker(bind=postgre_engine)
+        # s2 = SessionForPostgre()
+
+        # #get details of dashboard and corresponding chart filter
+        # for value in s2.query(UserProgram.dashboard).distinct():
+        #     dashData.append({'dashId':value.dashboard})
+
+        # for value in dashData:
+        #     resultForSlug=s1.query(Dashboard).filter(Dashboard.id==value['dashId']).first()
+        #     if resultForSlug is not None:
+        #         value['slug']=resultForSlug.slug
+        #         result = s2.query(UserProgram.chartid).filter(UserProgram.dashboard==value['dashId']).first()
+        #         value['chartId']=result.chartid
+        #     else:
+        #         pass
+
+    #get userinfo
+        # userInfo=s1.query(User).filter(User.id==user_id).all()
+        # for r in userInfo:
+        #     username=r.username
+
+    #get role
+        for r in s1.query(assoc_user_role).filter_by(user_id=user_id).all():
+            s=s1.query(Role).filter_by(id=r.role_id).first()
+            userRole.append(s.name) 
+
+    #get dashboard from owners list
+        for r in s1.query(dashboard_user).filter_by(user_id=user_id).all():
+            userDashboards.append(r.dashboard_id)
+
+    #get additional data on basis of userinfo
+
+        #jinja_context.BASE_CONTEXT['username']=username 
+        # result = s2.query(UserProgram).filter(UserProgram.username==userName).all()
+        # resData = []
+
+        # for r in result:
+        #     resData.append({"userId":user_id,"dashId":r.dashboard,"chartId":r.chartid,"programName":r.program_name})
+
+        # if len(resData)> 0:
+        #     for data in resData:
+
+        #         resultForSlug=s1.query(Dashboard).filter(Dashboard.id==data['dashId']).all()
+        #         for res in resultForSlug:
+        #             data['dashSlug'] = res.slug
+
+        #         resultForLocation = s2.query(Programlocation).filter(Programlocation.program_name==data['programName']).all()
+        #         for r in resultForLocation:
+        #             obj = {'latitude':r.latitude,'longitude':r.longitude,'zoom':r.zoom}
+        #             data['extra'] = obj
+
+
+        #for assigning program names to dashboardids
+        # for value in dashData:
+        #     newArr = []
+        #     res123=s2.query(UserProgram).filter(UserProgram.dashboard==value['dashId'],UserProgram.username==userName).all()
+        #     for r in res123:
+        #         newArr.append(r.program_name)
+        #     value['programs']=newArr
+ 
+    #commit and close all sessions
+        s1.commit()
+        s1.close()
+        #s2.commit()
+        #s2.close()
+        #return {"data":resData,"extra":dashData,"role":userRole,"userDashboards":userDashboards}
+        return {"userDashboards":userDashboards,"role":userRole}
+
+    except:
+        print("IN ERROR")
+        return{"data":[],"extra":[],"error":"True"}
+
+
+@app.route("/getDataForDashboard",methods=["GET","POST"])
+def getDataForDashboard():
+    return getData()
+
+@app.route("/getDataForProram",methods=["GET","POST"])
+def getDataForProram():
+    return getDataForProgram(request.args.get('program_name',None))
+""" 
+@app.route('/encodeUrl',methods=['GET', 'POST'])
+def encodeUrl():
+    saltText = current_app.config.get("SALTING_TEXT")
+    message=json.loads(request.data)['request']['plainText']
+    ciphertext = encrypt(saltText, message.encode('utf8'))
+    return {'response':"Ok",'cipherText':hexlify(ciphertext),"redata":request.data}
+
+@app.route('/decodeUrl',methods=['GET', 'POST'])
+def decodeUrl():
+    saltText = current_app.config.get("SALTING_TEXT")
+    ciphertext=unhexlify(json.loads(request.data)['request']['cipherText'])
+    plaintext = decrypt(saltText, ciphertext)
+    return {"response":"Ok","plaintext":plaintext.decode('utf8')} """
 
 class KV(BaseSupersetView):
 
@@ -705,8 +970,19 @@ class R(BaseSupersetView):
     @has_access_api
     @expose("/shortner/", methods=["POST"])
     def shortner(self):
+        from flask import session
+        from urllib import parse
+        import json
+        import requests
         url = request.form.get("data")
-        obj = models.Url(url=url)
+        z = url
+        enc = z.split("preselect_filters=")
+        req = {"request": {"jsonObject": {"extra": json.loads(parse.unquote(enc[1]))}}}
+        r = requests.post("http://localhost:8000/api/v1/encrypt", json=req)
+        newUrl = enc[0] + "extra=" + r.json()["response"]["encrypted"]
+        print("#@@@@@@@@@@@@@@@@@@@@####",newUrl)
+        #obj = models.Url(url=url)
+        obj = models.Url(url=newUrl) #add new URL with encrypted params
         db.session.add(obj)
         db.session.commit()
         return Response(
@@ -2160,7 +2436,49 @@ class Superset(BaseSupersetView):
 
         if request.args.get("json") == "true":
             return json_success(json.dumps(bootstrap_data))
+#modify dashboard data acc to user program
+        try:
+            from flask import session
+            import requests
+            def search(list, platform):
+                for i in range(len(list)):
+                    if list[i] == platform:
+                        return True
+                return False
 
+            #resData = getData()['data']
+            #extraData = getData()['extra']
+            roles = getData()['role']
+            userDashboards=getData()['userDashboards']
+            isProgramAdmin = search(roles,'Program Admin')
+            isOwnerofDashbord = search(userDashboards,bootstrap_data['dashboard_data']['id'])
+            
+            print("**************************************",request.headers.get("Referer"))
+            if isOwnerofDashbord is False and isProgramAdmin is True:
+                return "UNAUTHORIZED"
+            
+            # if g.user.is_anonymous:
+            #     try:
+            #         print("####################################### ANONYMOUS ")
+            #         req = {"request": {"cipherText":parse.unquote(parse.quote_plus(request.args.get('extra')))}}
+            #         s = requests.post("http://localhost:8000/api/v1/decrypt", json=req)
+            #         print(s.json()["response"]["decryptedObject"]["extra"])
+            #         bootstrap_data['dashboard_data']['metadata']['default_filters'] = json.dumps(s.json()["response"]["decryptedObject"]["extra"])
+            #     except:
+            #         print("##################### ERROR WHILE DECODING")
+            # for data in extraData:
+            #     if bootstrap_data['dashboard_data']['id']==data['dashId'] and len(data['programs'])==1:
+            #         dfilters=bootstrap_data['dashboard_data']['metadata']['default_filters']
+            #         x=json.loads(dfilters)
+            #         x[data['chartId']]={'program_name':  [data['programs'][0]]  } #program should be passed as an array
+            #         bootstrap_data['dashboard_data']['metadata']['default_filters']=json.dumps(x)
+                
+            #     else:
+            #         pass
+
+        except:
+            print("###### GOT ERROR ###")
+            pass
         return self.render_template(
             "superset/dashboard.html",
             entry="dashboard",

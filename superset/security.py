@@ -17,7 +17,9 @@
 # pylint: disable=C,R,W
 """A set of constants and methods to manage permissions and security"""
 import logging
+from os import isatty
 from typing import Callable, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+import urllib
 
 from flask import current_app, g
 from flask_appbuilder import Model
@@ -31,13 +33,23 @@ from flask_appbuilder.security.views import (
 )
 from flask_appbuilder.widgets import ListWidget
 from sqlalchemy import or_
+from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.mapper import Mapper
+from sqlalchemy.orm.session import sessionmaker
+from flask_appbuilder.security.sqla.models import User
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName
+
+import json
+import requests
+from flask import redirect, g, flash, request, session
+from flask_appbuilder.security.views import UserDBModelView, AuthDBView, expose
+from flask_appbuilder.security.manager import BaseSecurityManager
+from flask_login import login_user, logout_user
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -813,3 +825,290 @@ class SupersetSecurityManager(SecurityManager):
         """
 
         self.assert_datasource_permission(viz.datasource)
+
+
+# Custom Security for user login by passing parameters
+global myObj
+from superset import security
+import requests
+import datetime
+
+class CustomAuthDBView(AuthDBView):
+    login_template = "appbuilder/general/security/login_db.html"
+    userToLogIn = None
+    isValid = False
+    userObj = None
+    programs = None
+    programNames = None
+    token = None
+    country = 'No Country'
+    jwt_token = None
+    isAdmin = False
+    isProgramAdmin = False
+    userId = None
+
+    # function for searching an element in a list/array
+    def search(self, list, text):
+        for i in range(len(list)):
+            if text.__contains__(list[i]):
+                return True
+        return False
+    
+
+    @expose("/getCountry")
+    def getCountry(self):
+        return {"response":'OK',"country":session.get('country','No Country')}
+
+
+    @expose("/getToken", methods=["GET", "POST"])
+    def getToken(self): 
+        return {'res':'self.jwt_token'}
+
+    @expose("/setToken", methods=["GET", "POST"])
+    def setToken(self):
+        import jwt
+        token = json.loads(request.data)["request"]["token"]
+        decoded = jwt.decode(token,verify=False, algorithms='HS264')
+        userId = decoded['sub']
+        roles = decoded['realm_access']['roles']
+        programNames = None
+        userPrograms = None
+        requestObjectForPrograms = {
+            "request":{
+                "userId":userId,
+                "token":token
+            }
+        }
+        requestForPrograms = requests.post("http://localhost:8000/supersetdashboards/api/v1/program/user", json=requestObjectForPrograms)
+        requestForuserDetails = requests.post("http://localhost:8000/supersetdashboards/api/v1/user-details", json=requestObjectForPrograms)
+        userDetails = requestForuserDetails.json()
+        programNames=requestForPrograms.json()['programNames']
+        userPrograms=requestForPrograms.json()['userPrograms']
+        country = userDetails["country"]
+        isAdmin = self.search(roles,'admin')
+        isProgramAdmin = self.search(roles,'admin') == False
+        self.isAdmin = isAdmin
+        self.isProgramAdmin = isProgramAdmin
+        self.userId = userId
+        self.pdaUser = requestForPrograms.json()
+        self.programs = userPrograms
+        self.programNames = programNames
+        self.country = country
+        print("##############################",programNames,userPrograms,userId,roles,country)
+        return {'response':{'admin':isAdmin,'programAdmin':isProgramAdmin,'country':country,'programs':userPrograms,'programNames':programNames}}
+
+    # api to get encrypted parameters to be used for login use
+    @expose("/handleLogin", methods=["GET", "POST"])
+    def handleLogin(self):
+        from superset import jinja_context
+        req = {
+            "request": {"cipherText": json.loads(request.data)["request"]["encrypted"]}
+        }
+
+        # to decrypt encrypted parameters
+        r = requests.post("http://localhost:8000/supersetdashboards/api/v1/decrypt", json=req)
+        self.userObj = r.json()["response"]["decryptedObject"]
+        iatObj = r.json()["response"]["decryptedObject"]["iat"]
+        self.programs = r.json()["response"]["decryptedObject"]["programs"]
+        self.programNames = r.json()["response"]["decryptedObject"]["programNames"]
+        self.token = r.json()["response"]["decryptedObject"]["token"]
+        jinja_context.BASE_CONTEXT['token'] = self.token
+
+        req2 = {"request":{"token":r.json()["response"]["decryptedObject"]["token"]}}
+        s = requests.post("http://localhost:8000/supersetdashboards/api/v1/user-details", json=req2)
+        self.country = s.json()['country']
+
+        dateFromReq = datetime.datetime(
+            iatObj["year"],
+            iatObj["month"] + 1,
+            iatObj["day"],
+            iatObj["hour"],
+            iatObj["minutes"],
+            iatObj["seconds"],
+            iatObj["milis"],
+        )
+        currentDate = datetime.datetime.utcnow()
+
+        # check validity of token and redirect url
+        self.isValid = (
+            0 <= (dateFromReq - currentDate + datetime.timedelta(minutes=30)).days
+        ) and (
+            request.headers.get("Referer") is not None
+            and self.search(
+                current_app.config.get("VALID_REFERER_URLS"),
+                request.headers.get("Referer"),
+            )
+        )
+        return {
+            "response": "OK",
+            "encrypted": json.loads(request.data)["request"]["encrypted"],
+        }
+    
+    @expose("/superset/pdaUserDetails", methods=["GET", "POST"])
+    def pdaUserDetails(self):
+        if self.pdaUser is not None:
+            response = self.pdaUser
+        else:
+            response = {}
+        return (response)
+    
+    @expose("/superset/login", methods=["GET", "POST"])
+    def login(self):
+        print("########CALLED##########################################")
+        from superset import jinja_context
+        redirect_url = self.appbuilder.get_url_for_index
+        sample_url = "/superset/dashboard/7/"
+        role = None
+        userId = self.userId
+        # self.set_userId("userId", self.userId)
+        programs = self.programs
+        programNames = self.programNames
+        isAdmin = self.isAdmin
+        isProgramAdmin = self.isProgramAdmin
+        dashboard = request.args.get("dashboard",None)
+        isValidReferer = request.headers.get("Referer") is not None and self.search(
+            current_app.config.get("VALID_REFERER_URLS"), request.headers.get("Referer")
+        )
+        if programs is not None and len(programs) ==1 and len(programNames) == 1:
+            programs.append(programs[0])
+            programNames.append(programNames[0])
+
+        else:
+            pass
+
+        print("#############################"," contains /superset/login-> ",request.headers.get("Referer")," IsvalidReferer->",isValidReferer," REferer->",request.headers.get("Referer")," Valid referers->",current_app.config.get("VALID_REFERER_URLS"))
+
+        if dashboard is not None:
+            redirect_url =  "/superset/dashboard/"+ dashboard
+
+        if isValidReferer == True and request.headers.get("Referer") is not None and request.headers.get("Referer").__contains__('/superset/login') == False:
+            try:
+                #resObj = self.userObj
+                #role = resObj["role"]
+                #userId = resObj["userId"]
+                self.userToLogIn = "public_user" # check for username in instance
+
+                """if isProgramAdmin == True:
+                    self.userToLogIn = "public_user"
+                    role = 'Program Admin'
+
+                elif isAdmin == True:
+                    self.userToLogIn = "admin"
+                    role = 'Admin'
+
+                else:
+                    pass"""
+
+            except:
+                pass
+
+            user = self.appbuilder.sm.find_user(username=self.userToLogIn)
+            if user is None:
+                return {"error":"please retry login"}
+            else:
+                pass
+            login_user(user, remember=False)
+            #add additional information in session
+            #session["userId"] = userId
+            #session["role"] = role
+            session["referer"] = request.headers.get("Referer")
+            session['programs'] = programs
+            session['programNames'] = programNames
+            session['country'] = self.country
+
+ # get superset username by id and store it in session
+            user_id=session.get('user_id',None)
+            user_name_superset=None
+            if user_id is not None:
+                user_id=int(user_id)
+            #for getting dbURL for SQLITE
+            sqlite_engine=create_engine(current_app.config.get("SQLALCHEMY_DATABASE_URI"))
+            #create session for querying sqlite db
+            SessionForSqlite = sessionmaker(bind=sqlite_engine)
+            s1= SessionForSqlite()
+            #get userinfo
+            #user_name_superset
+            userInfo=s1.query(User).filter(User.id==user_id).all()
+            for r in userInfo:
+                user_name_superset=r.username
+            session['user_name_superset']=user_name_superset
+            session['userName']=user_name_superset
+
+            s1.commit()
+            s1.close()
+            print("###########################################################",session.get('user_name_superset'))
+        
+            return redirect(redirect_url)
+        else:
+            flash("Unable to auto login", "warning")
+            self.pdaUser = {}
+            #return 'Invalid Url'
+            return super(CustomAuthDBView, self).login()
+            #return redirect('/')
+
+    @expose("/logout/", methods=["GET", "POST"])
+    def logout(self):
+        import urllib
+        logout_url: str = "/superset/login"
+        ssologouturl = "http://localhost:4200/supersetdashboards/ssologout"
+        pdaUrl = current_app.config.get('PDA_URL')
+        logout_user()
+        return redirect(ssologouturl)
+        pdaUrl = current_app.config.get('PDA_URL') #check for host for every deployment
+        pdaLoginPageUrl = current_app.config.get('PDA_LOGIN_URL')
+      
+        if session.get("referer", None) is not None and session.get(
+            "referer"
+        ).__contains__(pdaUrl):
+            # logout url is pda login page
+            scheme=urllib.parse.urlparse(session.get("referer")).scheme
+            netloc=urllib.parse.urlparse(session.get("referer")).netloc
+            logout_url=scheme+'://'+ netloc +'/'+'supersetdashboards/ssologout'
+            print("############################################ IN IF",logout_url)
+
+        elif session.get("referer", None) is not None and urllib.parse.urlparse(session.get("referer")).port is not None:
+            scheme=urllib.parse.urlparse(session.get("referer")).scheme
+            netloc=urllib.parse.urlparse(session.get("referer")).netloc
+            logout_url=scheme+'://'+ netloc +'/'+'supersetdashboards/ssologout'
+        else:
+            pass
+        print("########LOGOUT URL### ",logout_url)
+
+        # return redirect("/")
+        session.pop('referer',None)
+        session.pop('userName',None)
+        session.pop('programs',None)
+        session.pop('programNames',None)
+        logout_user()
+
+        return redirect(logout_url)
+
+
+class CustomSecurityManager(SupersetSecurityManager):
+
+    def showProfile(self):
+        import os
+        user_id=session.get('user_id',None)
+        user_name_superset=''
+        usernames=os.environ.get('usernames',"public_user,pdauser").split(",")
+        if user_id is not None:
+            user_id=int(user_id)
+        #for getting dbURL for SQLITE
+        sqlite_engine=create_engine(current_app.config.get("SQLALCHEMY_DATABASE_URI"))
+
+        SessionForSqlite = sessionmaker(bind=sqlite_engine)
+        s1= SessionForSqlite()
+   
+        userInfo=s1.query(User).filter(User.id==user_id).all()
+        for r in userInfo:
+            user_name_superset=r.username
+       
+        s1.commit()
+        s1.close()
+        
+        return not user_name_superset in usernames
+
+    authdbview = CustomAuthDBView
+
+    def __init__(self, appbuilder):
+        super(CustomSecurityManager, self).__init__(appbuilder)

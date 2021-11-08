@@ -36,6 +36,7 @@ import {
   GRID_BASE_UNIT,
   GRID_GUTTER_SIZE,
 } from '../../util/constants';
+import { APIURLS, CHARTID } from 'src/explore/constants';
 
 const CHART_MARGIN = 32;
 
@@ -107,6 +108,9 @@ class ChartHolder extends React.Component {
       outlinedComponentId: null,
       outlinedColumnName: null,
       directPathLastUpdated: 0,
+      hideFilter:true,
+      chartIds:[],
+      canRender:false
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
@@ -116,6 +120,80 @@ class ChartHolder extends React.Component {
 
   componentDidMount() {
     this.hideOutline({}, this.state);
+    let sessionData;
+    let dashboardIDs;
+    let slugs;
+    let matchedDashboardIDs;
+    let matchedSlugs;
+    let chartIDs;
+
+// try{
+//   sessionData = JSON.parse(localStorage.getItem('dashData'));
+// }catch{
+
+// }
+
+// if(sessionData && sessionData['data'] && sessionData['data'].length > 0 && sessionData['extra'] && sessionData['extra'].length > 0){
+//   let url = APIURLS.url3;
+//   dashboardIDs = sessionData['extra'].map((element)=>{return element['dashId']});
+//   slugs = sessionData['extra'].map((element)=>{return element['slug']});
+// console.log("*IN SESSION*",dashboardIDs,slugs);
+// matchedDashboardIDs =  dashboardIDs.filter((element => {
+// return (window.location.href.indexOf('dashboard/'+element) > -1)  
+// }));
+// matchedSlugs =  slugs.filter((element => {
+// return (window.location.href.indexOf('dashboard/'+element) > -1)  
+// }));
+// console.log(matchedSlugs,matchedDashboardIDs);
+// if(
+//   (matchedDashboardIDs || matchedSlugs) && (matchedSlugs.length >0 || matchedDashboardIDs.length > 0)
+//   ){
+// //call api again and again
+// fetch(url, { method: "GET" })
+// .then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
+//   this.setState({canRender:true})
+// })
+//   }
+
+// else{
+//   this.setState({canRender:true})  
+// }
+
+// }
+
+// else{
+//   let url = APIURLS.url3;
+//   fetch(url, { method: "GET" })
+//   .then((res) => res.json()).then((data)=>{
+//     localStorage.setItem('dashData',JSON.stringify(data));
+//     console.log('data',data['data'],data['extra']);
+//     dashboardIDs = data['extra'].map((element)=>{return element['dashId']});
+//     slugs = data['extra'].map((element)=>{return element['slug']});
+// console.log("*IN API ELSE*",dashboardIDs,slugs);
+// matchedDashboardIDs =  dashboardIDs.filter((element => {
+// return (window.location.href.indexOf('dashboard/'+element) > -1)  
+// }));
+// matchedSlugs =  slugs.filter((element => {
+// return (window.location.href.indexOf('dashboard/'+element) > -1)  
+// }));
+//   console.log(matchedSlugs,matchedDashboardIDs);
+//   if(
+//     (matchedDashboardIDs || matchedSlugs) && (matchedSlugs.length >0 || matchedDashboardIDs.length > 0)
+//     ){
+// //call api again and again
+// fetch(url, { method: "GET" })
+//   .then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
+//     this.setState({canRender:true})
+//   })
+//     }
+// else{
+//   this.setState({canRender:true})  
+// }
+
+//   }).catch()
+
+
+// }
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -160,7 +238,7 @@ class ChartHolder extends React.Component {
   }
 
   render() {
-    const { isFocused } = this.state;
+    const { isFocused,hideFilter,chartIds,canRender } = this.state;
 
     const {
       component,
@@ -176,6 +254,15 @@ class ChartHolder extends React.Component {
       editMode,
       isComponentVisible,
     } = this.props;
+
+ 
+//     if(!canRender){
+// return null;
+//     }
+
+//     if( chartIds.indexOf(component.meta.chartId) > -1 && hideFilter){
+//       return null;
+//         }
 
     // inherit the size of parent columns
     const widthMultiple =

@@ -258,6 +258,8 @@ class BaseViz(object):
         utils.split_adhoc_filters_into_base_filters(self.form_data)
 
     def query_obj(self):
+        from superset import jinja_context
+        from flask import session,g
         """Building a query object"""
         form_data = self.form_data
         self.process_query_filters()
@@ -323,6 +325,54 @@ class BaseViz(object):
             "timeseries_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
         }
+        # add userId and role to jinja context 
+        jinja_context.BASE_CONTEXT['userId']= session.get('userId',None)
+        #jinja_context.BASE_CONTEXT['role'] = session.get('role','Guest')
+        jinja_context.BASE_CONTEXT['username'] = session.get('user_name_superset')
+
+        #for admin
+        #for program admin
+        #for anonymous g.user.is_anonymous
+        if session.get('programs',None) is None or len(tuple(session.get('programs'))) == 0:
+            jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+            jinja_context.BASE_CONTEXT['program_names'] = ('-2','-1')
+
+        else:
+            jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
+            jinja_context.BASE_CONTEXT['program_names'] = tuple(session.get('programNames'))
+
+        """if session.get('role',None) == 'Admin':
+
+            if len(tuple(session.get('programs'))) == 0:
+                jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+                jinja_context.BASE_CONTEXT['program_names'] = ('-2','-1')
+                jinja_context.BASE_CONTEXT['program_names_for_guest'] = ('-2','-1')
+
+            else:
+                jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
+                jinja_context.BASE_CONTEXT['program_names'] = tuple(session.get('programNames'))
+                jinja_context.BASE_CONTEXT['program_names_for_guest'] = tuple(session.get('programNames'))
+
+        elif session.get('role',None) is not None and session.get('role',None) != 'Admin':
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            if len(tuple(session.get('programs'))) == 0:
+                jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+                jinja_context.BASE_CONTEXT['program_names'] = ('-2','-1')
+                jinja_context.BASE_CONTEXT['program_names_for_guest'] = ('-2','-1')
+
+            else:
+                jinja_context.BASE_CONTEXT['program_ids'] = tuple(session.get('programs'))
+                jinja_context.BASE_CONTEXT['program_names'] = tuple(session.get('programNames'))
+                jinja_context.BASE_CONTEXT['program_names_for_guest'] = ('-2','-1')
+
+        elif g.user.is_anonymous == True:
+                jinja_context.BASE_CONTEXT['program_ids'] = (-2,-1)
+                jinja_context.BASE_CONTEXT['program_names'] = ('-2','-1')
+                jinja_context.BASE_CONTEXT['role'] = 'Guest'
+                
+        else:
+            pass"""
+        print("IN QUERY OBJECT******************")
         return d
 
     @property
@@ -1840,6 +1890,7 @@ class FilterBoxViz(BaseViz):
                 d[col] = [
                     {"id": row[0], "text": row[0]} for row in df.itertuples(index=False)
                 ]
+        newData = {'program_name': [{'id': 'Tanzania Project', 'text': 'Tanzania Project'}, {'id': 'pro 2', 'text': 'pro 2'}]}
         return d
 
 
@@ -2062,8 +2113,11 @@ class MapboxViz(BaseViz):
         }
 
         x_series, y_series = df[fd.get("all_columns_x")], df[fd.get("all_columns_y")]
-        south_west = [x_series.min(), y_series.min()]
-        north_east = [x_series.max(), y_series.max()]
+        south_west = [x_series.min()-1, y_series.min()-1]
+        north_east = [x_series.max()+1, y_series.max()+1]
+        lat = fd.get("viewport_latitude")
+        lon = fd.get("viewport_longitude")
+        zoom = fd.get("viewport_zoom")
 
         return {
             "geoJSON": geo_json,
@@ -2074,7 +2128,7 @@ class MapboxViz(BaseViz):
             "clusteringRadius": fd.get("clustering_radius"),
             "pointRadiusUnit": fd.get("point_radius_unit"),
             "globalOpacity": fd.get("global_opacity"),
-            "bounds": [south_west, north_east],
+            "bounds": [south_west, north_east,[lat,lon,zoom]],
             "renderWhileDragging": fd.get("render_while_dragging"),
             "tooltip": fd.get("rich_tooltip"),
             "color": fd.get("mapbox_color"),

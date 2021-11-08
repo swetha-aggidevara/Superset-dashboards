@@ -94,12 +94,18 @@ body {
 }
 
 .dashboard .dashboard-header {
+
+  .btn-default {
+    color: #fff;
+    background-color:@button-color;
+  }
   #save-dash-split-button {
     border-radius: 0;
     margin-left: -9px;
     height: 30px;
     width: 30px;
     z-index: 10;
+    background-color: @button-color;
 
     &.btn.btn-primary {
       border-left-color: white;
@@ -123,12 +129,18 @@ body {
     & > :nth-child(3) {
       border-radius: 2px 0px 0px 2px;
       border-right: none;
+      background-color: @button-color;
+      color:#fff;
     }
     & > :nth-child(4) {
       border-radius: 0px 2px 2px 0px;
+      background-color: @button-color;
+      color:#fff;
     }
     & > :not(:nth-child(3)):not(:last-child) {
       margin-right: 8px;
+      color:#fff;
+      background-color: @button-color;
     }
   }
 }

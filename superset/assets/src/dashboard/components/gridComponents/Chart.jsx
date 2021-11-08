@@ -30,6 +30,8 @@ import {
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from '../../../logger/LogUtils';
+import moment from 'moment';
+import {APIURLS} from '../../../explore/constants';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -94,6 +96,19 @@ class Chart extends React.Component {
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
   }
+
+componentDidMount() {
+  let tz = moment().format('Z');
+  let url = APIURLS.url;
+  let url2 = APIURLS.url2;
+  fetch(url, { method: 'POST', body: JSON.stringify({ tz }) })
+    .then((response) => response.json())
+    .then((data) => {
+      fetch(url2, { method: 'GET' })
+        .then((response) => response.json())
+        .then((data) => {})
+    }); 
+}
 
   shouldComponentUpdate(nextProps, nextState) {
     // this logic mostly pertains to chart resizing. we keep a copy of the dimensions in

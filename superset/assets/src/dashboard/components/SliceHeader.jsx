@@ -97,7 +97,7 @@ class SliceHeader extends React.PureComponent {
       filters,
       addDangerToast,
     } = this.props;
-
+    let isNotBigNumber = this.props.slice.viz_type !== "big_number_total";
     return (
       <div className="chart-header" ref={innerRef}>
         <div className="header">
@@ -109,6 +109,7 @@ class SliceHeader extends React.PureComponent {
                 : '')
             }
             canEdit={editMode}
+            isNotBigNumber={isNotBigNumber}
             emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
@@ -131,7 +132,7 @@ class SliceHeader extends React.PureComponent {
               <i className="fa fa-exclamation-circle danger" />
             </TooltipWrapper>
           )}
-          {!editMode && (
+          {!editMode && isNotBigNumber  && (
             <SliceHeaderControls
               slice={slice}
               isCached={isCached}

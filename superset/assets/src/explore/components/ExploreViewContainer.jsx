@@ -41,7 +41,8 @@ import {
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from '../../logger/LogUtils';
 import Hotkeys from '../../components/Hotkeys';
-
+import moment from 'moment';
+import { APIURLS } from './../constants';
 // Prolly need to move this to a global context
 const keymap = {
     RUN: 'ctrl + r, ctrl + enter',
@@ -97,6 +98,26 @@ class ExploreViewContainer extends React.Component {
     this.props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
 
     // Trigger the chart if there are no errors
+    let tz = moment().format('Z');
+    let url = APIURLS.url;
+    let url2 = APIURLS.url2;
+
+    let url3 =  APIURLS.url3;
+
+
+// fetch(url3, { method: "GET" })
+// .then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
+// }) 
+
+    fetch(url, { method: 'POST', body: JSON.stringify({ tz }) })
+      .then((response) => response.json())
+      .then((data) => {
+        fetch(url2, { method: 'GET' })
+          .then((response) => response.json())
+          .then((data) => { 
+            })
+      });
+
     const { chart } = this.props;
     if (!this.hasErrors()) {
       this.props.actions.triggerQuery(true, this.props.chart.id);
@@ -145,6 +166,25 @@ class ExploreViewContainer extends React.Component {
 
   onQuery() {
     // remove alerts when query
+    let tz = moment().format('Z');
+    let url = APIURLS.url;
+    let url2 = APIURLS.url2;
+    let url3 =  APIURLS.url3;
+
+
+//      fetch(url3, { method: "GET" })
+// .then((res) => res.json()).then((data)=>{console.log("api called set canrender true");
+// })
+ 
+    fetch(url, { method: 'POST', body: JSON.stringify({ tz }) })
+      .then((response) => response.json())
+      .then((data) => {
+        fetch(url2, { method: 'GET' })
+          .then((response) => response.json())
+          .then((data) => { 
+            })
+      });
+
     this.props.actions.removeControlPanelAlert();
     this.props.actions.triggerQuery(true, this.props.chart.id);
 

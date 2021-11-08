@@ -36,6 +36,7 @@ from flask_appbuilder.security.manager import AUTH_DB
 
 from superset.stats_logger import DummyStatsLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from superset.security import CustomSecurityManager
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -71,6 +72,20 @@ VERSION_STRING = _try_json_readfile(VERSION_INFO_FILE) or _try_json_readfile(
     PACKAGE_JSON_FILE
 )
 
+POSTGRE_DB_NAME=os.environ.get('posgredbname')
+SALTING_TEXT = "exacdf323"
+""" VALID_REFERER_URLS = [
+    "http://localhost:4200/customlogin",
+    "http://localhost:8000/customlogin",
+    "https://pda.socion.io",
+    "http://35.153.175.172:8000/",
+    "http://35.153.175.172:4200/"
+] """
+VALID_REFERER_URLS=os.environ.get("urls").split(",")
+print(os.environ.get("urls").split(","))
+PDA_URL = "https://pda.socion.io/"
+PDA_LOGIN_URL = "https://pda.socion.io/oauth/login"
+CUSTOM_LOGIN_ENDPOINT = "customlogin"
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
 # max rows retrieved by filter select auto complete
@@ -89,7 +104,7 @@ SUPERSET_WEBSERVER_TIMEOUT = 60
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
 EMAIL_NOTIFICATIONS = False
-CUSTOM_SECURITY_MANAGER = None
+CUSTOM_SECURITY_MANAGER = CustomSecurityManager
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
@@ -98,8 +113,11 @@ SECRET_KEY = "\2\1thisismyscretkey\1\2\e\y\y\h"
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "supersetVerTest.db")
+# SQLALCHEMY_DATABASE_URI = "postgresql://superset:superset@localhost/superset" 
+
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+
 
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -114,7 +132,7 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "supersetVerTest
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = True
+WTF_CSRF_ENABLED = False
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log"]
@@ -267,7 +285,7 @@ CACHE_CONFIG: Dict[str, Any] = {"CACHE_TYPE": "null"}
 TABLE_NAMES_CACHE_CONFIG = {"CACHE_TYPE": "null"}
 
 # CORS Options
-ENABLE_CORS = False
+ENABLE_CORS = True
 CORS_OPTIONS: Dict[Any, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
@@ -373,7 +391,10 @@ BACKUP_COUNT = 30
 #     pass
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
+MAPBOX_API_KEY = os.environ.get(
+    "MAPBOX_API_KEY",
+    "pk.eyJ1IjoicGF2YW50aGVqIiwiYSI6ImNrMHFna3FibTA3bnQzZXBnN3pqd3VtcTMifQ.xX2BQNLshtzncvDMcG4aNA",
+)
 
 # Maximum number of rows returned from a database
 # in async mode, no more than SQL_MAX_ROW will be returned and stored
@@ -556,7 +577,7 @@ HIVE_POLL_INTERVAL = 5
 # this enables programmers to customize certain charts (like the
 # geospatial ones) by inputing javascript in controls. This exposes
 # an XSS security vulnerability
-ENABLE_JAVASCRIPT_CONTROLS = False
+ENABLE_JAVASCRIPT_CONTROLS = True
 
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
@@ -648,7 +669,7 @@ DOCUMENTATION_URL = None
 # start time will be set to midnight, while end will be relative to
 # the query issue time.
 DEFAULT_RELATIVE_START_TIME = "today"
-DEFAULT_RELATIVE_END_TIME = "today"
+DEFAULT_RELATIVE_END_TIME = "now"
 
 # Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {"presto": "PrestoDBSQLValidator"}

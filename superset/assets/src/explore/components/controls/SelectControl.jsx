@@ -25,6 +25,7 @@ import { t } from '@superset-ui/translation';
 import ControlHeader from '../ControlHeader';
 import VirtualizedRendererWrap from '../../../components/VirtualizedRendererWrap';
 import OnPasteSelect from '../../../components/OnPasteSelect';
+import { APIURLS } from 'src/explore/constants';
 
 const propTypes = {
   choices: PropTypes.array,
@@ -77,9 +78,26 @@ const defaultProps = {
 export default class SelectControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { options: this.getOptions(props) };
+    this.state = { options: this.getOptions(props) ,disableDropdown:true};
     this.onChange = this.onChange.bind(this);
     this.createMetaSelectAllOption = this.createMetaSelectAllOption.bind(this);
+  }
+
+  componentDidMount() {
+    var requestOptions = {
+      method: 'GET',
+      redirect: 'follow'
+    };
+    // fetch(APIURLS.url4, requestOptions)
+    //   .then(response => response.json())
+    //   .then((result) => {
+    //     const isAnonymous = result['anonymous']?true:false;
+    //     this.setState({disableDropdown:isAnonymous});
+    //   }
+    //     ).catch((error) =>{
+    //       this.setState({disableDropdown:false});
+    //        console.log('error######', error);
+    //     });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -174,6 +192,7 @@ export default class SelectControl extends React.PureComponent {
 
   render() {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
+  //  const {disableDropdown} = this.state;
     const placeholder = this.props.placeholder || t('%s option(s)', this.state.options.length);
     const selectProps = {
       multi: this.props.multi,
@@ -195,6 +214,7 @@ export default class SelectControl extends React.PureComponent {
       refFunc: this.props.refFunc,
       filterOption: this.props.filterOption,
       promptTextCreator: this.props.promptTextCreator,
+     // disabled:disableDropdown
     };
     if (this.props.freeForm) {
       selectProps.selectComponent = Creatable;

@@ -33,6 +33,7 @@ import { getFilterColorKey, getFilterColorMap } from '../../dashboard/util/dashb
 import FilterBadgeIcon from '../../components/FilterBadgeIcon';
 
 import './FilterBox.css';
+import { APIURLS } from 'src/explore/constants';
 
 // maps control names to their key in extra_filters
 const TIME_FILTER_MAP = {
@@ -92,6 +93,7 @@ class FilterBox extends React.Component {
       selectedValues: props.origSelectedValues,
       // this flag is used by non-instant filter, to make the apply button enabled/disabled
       hasChanged: false,
+      disableDropdown:true
     };
     this.changeFilter = this.changeFilter.bind(this);
     this.onFilterMenuOpen = this.onFilterMenuOpen.bind(this, props.chartId);
@@ -100,7 +102,22 @@ class FilterBox extends React.Component {
     this.onBlur = this.onFilterMenuClose;
     this.onOpenDateFilterControl = this.onFilterMenuOpen.bind(props.chartId, TIME_RANGE);
   }
-
+  componentDidMount() {
+    var requestOptions = {
+      method: 'GET',
+      redirect: 'follow'
+    };
+    // fetch(APIURLS.url4, requestOptions)
+    //   .then(response => response.json())
+    //   .then((result) => {
+    //     const isAnonymous = result['anonymous']?true:false;
+    //     this.setState({disableDropdown:isAnonymous});
+    //   }
+    //     ).catch((error) => {
+    //       this.setState({disableDropdown:false});
+    //       console.log('error######', error)
+    //   });
+  }
   onFilterMenuOpen(chartId, column) {
     this.props.onFilterMenuOpen(chartId, column);
   }
@@ -192,6 +209,7 @@ class FilterBox extends React.Component {
     if (showSqlaTimeColumn) sqlaFilters.push('granularity_sqla');
     if (showDruidTimeGrain) druidFilters.push('granularity');
     if (showDruidTimeOrigin) druidFilters.push('druid_time_origin');
+    console.log("###",sqlaFilters)
     if (sqlaFilters.length) {
       datasourceFilters.push(
         <ControlRow
@@ -219,6 +237,8 @@ class FilterBox extends React.Component {
   renderSelect(filterConfig) {
     const { filtersChoices } = this.props;
     const { selectedValues } = this.state;
+    const {disableDropdown} = this.state;
+    console.log(disableDropdown,'dis');
 
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
@@ -262,6 +282,7 @@ class FilterBox extends React.Component {
         multi={filterConfig.multiple}
         clearable={filterConfig.clearable}
         value={value}
+        // disabled={disableDropdown}
         options={data.map((opt) => {
           const perc = Math.round((opt.metric / max) * 100);
           const backgroundImage = (

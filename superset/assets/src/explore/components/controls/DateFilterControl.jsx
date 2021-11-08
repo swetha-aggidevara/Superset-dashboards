@@ -42,6 +42,8 @@ import { t } from '@superset-ui/translation';
 import './DateFilterControl.css';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
+import { APIURLS } from 'src/explore/constants';
+
 
 const TYPES = Object.freeze({
   DEFAULTS: 'defaults',
@@ -117,7 +119,8 @@ function getStateFromCommonTimeFrame(value) {
     type: TYPES.DEFAULTS,
     common: value,
     since: moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT),
-    until: moment().startOf('day').format(MOMENT_FORMAT),
+    //until: moment().startOf('day').format(MOMENT_FORMAT), for changing date to current date with time
+    until: moment().format(MOMENT_FORMAT)
   };
 }
 
@@ -175,6 +178,7 @@ export default class DateFilterControl extends React.Component {
       showUntilCalendar: false,
       sinceViewMode: 'days',
       untilViewMode: 'days',
+      disableDropdown:true
     };
 
     const value = props.value;
@@ -203,6 +207,21 @@ export default class DateFilterControl extends React.Component {
 
   componentDidMount() {
     document.addEventListener('click', this.handleClick);
+
+    var requestOptions = {
+      method: 'GET',
+      redirect: 'follow'
+    };
+    // fetch(APIURLS.url4, requestOptions)
+    //   .then(response => response.json())
+    //   .then((result) => {
+    //     const isAnonymous = result['anonymous']?true:false;
+    //     this.setState({disableDropdown:isAnonymous});
+    //   }
+    //     ).catch((error) =>{
+    //        console.log('error######', error)
+    //        this.setState({disableDropdown:false});
+    //       });
   }
 
   componentWillUnmount() {
@@ -494,6 +513,9 @@ export default class DateFilterControl extends React.Component {
   }
   render() {
     let value = this.props.value || defaultProps.value;
+   // const {disableDropdown} = this.state;
+ //   const styles = disableDropdown?{ pointerEvents: 'none' }: { cursor: 'pointer' }
+// const styles = { cursor: 'pointer' }
     value = value.split(SEPARATOR).map((v, idx) => v.replace('T00:00:00', '') || (idx === 0 ? '-∞' : '∞')).join(SEPARATOR);
     return (
       <div>
